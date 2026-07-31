@@ -28,6 +28,7 @@ namespace meshskeletonizationplugin
 {
 
 extern void registerMeshSkeletonization(sofa::core::ObjectFactory* factory);
+extern void registerSkeletonizationLoader(sofa::core::ObjectFactory* factory);
 
 //Here are just several convenient functions to help users know what the plugin contains
 extern "C" {
@@ -79,6 +80,7 @@ void init()
 void registerObjects(sofa::core::ObjectFactory* factory)
 {
     registerMeshSkeletonization(factory);
+    registerSkeletonizationLoader(factory);
 }
 
 }
