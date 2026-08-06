@@ -14,15 +14,18 @@ set(HEADER_FILES
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/init.h
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/MeshSkeletonization.h
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/MeshSkeletonization.inl
-    ${PLUGIN_SKELETONIZATION_SRC_DIR}/VesselTree/VesselTree.h
-    ${PLUGIN_SKELETONIZATION_SRC_DIR}/VesselTree/VesselTree.inl
-    ${PLUGIN_SKELETONIZATION_SRC_DIR}/MySkeleton/SkeletonizationLoader.h
-    ${PLUGIN_SKELETONIZATION_SRC_DIR}/MySkeleton/SkeletonizationLoader.inl
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonNode.h
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonGraph.h
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonReader.h
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonReader.inl
 )
 set(SOURCE_FILES
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/init.cpp
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/MeshSkeletonization.cpp
-    ${PLUGIN_SKELETONIZATION_SRC_DIR}/MySkeleton/SkeletonizationLoader.cpp
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonGraph.cpp
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonReader.cpp
+
+
 )
 
 set(README_FILES README.md)

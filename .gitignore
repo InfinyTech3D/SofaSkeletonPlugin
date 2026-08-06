@@ -1,0 +1,6 @@
+/data/
+/scenes/
+.gitignore
+*.vtk
+*.obj
+*.sxn
