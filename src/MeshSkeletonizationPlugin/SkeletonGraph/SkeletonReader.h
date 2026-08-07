@@ -40,6 +40,7 @@ public:
     sofa::core::objectmodel::DataFileName d_inSkeletonFilename; ///< Path to the skeleton polyline file to read (e.g. skeleton.txt)
     sofa::core::objectmodel::Data<VecCoord> d_inVertices;       ///< Optional input mesh vertices, to link skeleton nodes to the mesh
     sofa::core::objectmodel::Data<Vec3> d_inEntryPoint;         ///< Approx. entry point; closest node becomes the tree root
+    sofa::core::objectmodel::DataFileName d_outReportFilename; /// CSV report that guves out the ide, 3D coordinates, parent vertice and child vertice
 
     // Outputs
     sofa::core::objectmodel::DataFileName d_outVTKFilename;     ///< File path to (re-)export the rooted tree as VTK
