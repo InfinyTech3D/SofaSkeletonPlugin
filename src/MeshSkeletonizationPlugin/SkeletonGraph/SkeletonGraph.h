@@ -41,6 +41,13 @@ public:
 
     /// Ids of nodes connected by a loop/anastomosis (extra edge beyond the tree).
     const std::vector<std::pair<int, int>>& loopEdges() const { return m_loopEdges; }
+    //newzest additions 
+    const SkeletonNode* node(int nodeId) const; 
+    const std::vector<int>& parentsOf(int nodeId) const;    
+    const std::vector<int>& childrenOf(int nodeId) const;   
+    std::vector<int> pathFromRoot(int nodeId) const; 
+    std::vector<int> subtree(int nodeId) const;
+    void exportReportCSV(const std::string& filename) const;
 
     void exportToVTK(const std::string& filename) const;
 
