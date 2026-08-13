@@ -301,11 +301,16 @@ const SkeletonNode* SkeletonGraph::node(int nodeId) const
         return nullptr;
     return &m_nodes[nodeId];
 }
-const std::vector<int>& SkeletonGraph::parentsOf(int nodeId) const
+bool SkeletonGraph::parentsOf(int nodeId, std::vector<int>& parents) const
 {
-    static const std::vector<int> empty;
     const SkeletonNode* n = node(nodeId);
-    return n ? n->parentIds() : empty;
+    if n->parentIds()
+    {
+         parents = n;
+         return true;
+     }
+     else
+         return false;
 }
 
 const std::vector<int>& SkeletonGraph::childrenOf(int nodeId) const
