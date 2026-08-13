@@ -19,6 +19,7 @@ namespace meshskeletonizationplugin
 template <class DataTypes>
 class SkeletonReader : public sofa::core::DataEngine
 {
+    
 public:
     SOFA_CLASS(SOFA_TEMPLATE(SkeletonReader, DataTypes), sofa::core::DataEngine);
 
