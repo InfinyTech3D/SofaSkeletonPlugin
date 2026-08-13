@@ -301,26 +301,38 @@ const SkeletonNode* SkeletonGraph::node(int nodeId) const
         return nullptr;
     return &m_nodes[nodeId];
 }
-const std::vector<int>& SkeletonGraph::parentsOf(int nodeId) const
-{
-    static const std::vector<int> empty;
-    const SkeletonNode* n = node(nodeId);
-    return n ? n->parentIds() : empty;
-}
 
-const std::vector<int>& SkeletonGraph::childrenOf(int nodeId) const
-{
-    static const std::vector<int> empty;
-    const SkeletonNode* n = node(nodeId);
-    return n ? n->childrenIds() : empty;
-}
 
+bool SkeletonGraph::parentsOf(int nodeId, std::vector<int>& parents) const
+{
+    parents.clear();
+ 
+    const SkeletonNode* n = node(nodeId);
+    if (n == nullptr || n->parentIds().empty())
+        return false;
+ 
+    parents = n->parentIds();
+    return true;
+}
+ 
+bool SkeletonGraph::childrenOf(int nodeId, std::vector<int>& children) const
+{
+    children.clear();
+ 
+    const SkeletonNode* n = node(nodeId);
+    if (n == nullptr || n->childrenIds().empty())
+        return false;
+ 
+    children = n->childrenIds();
+    return true;
+}
 
 std::vector<int> SkeletonGraph::pathFromRoot(int nodeId) const
 {
     std::vector<int> path;
     if (!hasRoot() || node(nodeId) == nullptr) return path;
 
+    std::vector<int> parents;
     std::set<int> seen;
     int cur = nodeId;
     while (true)
@@ -328,8 +340,7 @@ std::vector<int> SkeletonGraph::pathFromRoot(int nodeId) const
         if (!seen.insert(cur).second) { path.clear(); return path; }
         path.push_back(cur);
         if (cur == m_rootId) break;
-        const auto& parents = parentsOf(cur);
-        if (parents.empty()) return {};
+        if (!parentsOf(cur, parents)) { path.clear(); return path; }
         cur = parents.front();
     }
     std::reverse(path.begin(), path.end());
@@ -339,17 +350,21 @@ std::vector<int> SkeletonGraph::subtree(int nodeId) const
 {
     std::vector<int> result;
     if (node(nodeId) == nullptr) return result;
-
+ 
+    std::vector<int> children;
     std::set<int> visited;
     std::queue<int> q;
     q.push(nodeId); visited.insert(nodeId);
-
+ 
     while (!q.empty())
     {
         int cur = q.front(); q.pop();
         result.push_back(cur);
-        for (int child : childrenOf(cur))
-            if (visited.insert(child).second) q.push(child);
+        if (childrenOf(cur, children))
+        {
+            for (int child : children)
+                if (visited.insert(child).second) q.push(child);
+        }
     }
     return result;
 }

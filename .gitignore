@@ -1,8 +1,6 @@
-/data/
+/data/Veins_data/
+/data/LnRobsData/
 /scenes/
 .gitignore
 *.vtk
 *.obj
-*.sxn
-*.scn
-*.csv
