@@ -13,7 +13,6 @@ SkeletonReader<DataTypes>::SkeletonReader()
     , d_inVertices(initData(&d_inVertices, "inputVertices", "Optional input mesh vertices, to link skeleton nodes to the mesh"))
     , d_inEntryPoint(initData(&d_inEntryPoint, Vec3(0, 0, 0), "entryPoint", "Approx. entry point; closest node becomes the tree root"))
     , d_outVTKFilename(initData(&d_outVTKFilename, "outputVTK", "File path to export the rooted tree (.vtk)"))
-    , d_outReportFilename(initData(&d_outReportFilename, "outputReport", "File path to export a per-node CSV report (id, x, y, z, parentId, childrenIds, pathFromRoot)"))
     , d_outNodeCount(initData(&d_outNodeCount, 0, "nodeCount", "Number of skeleton nodes read"))
 {
     addInput(&d_inSkeletonFilename);
@@ -22,7 +21,6 @@ SkeletonReader<DataTypes>::SkeletonReader()
 
 
     addOutput(&d_outVTKFilename);
-    addOutput(&d_outReportFilename);
     addOutput(&d_outNodeCount);
 }
 
@@ -91,8 +89,7 @@ void SkeletonReader<DataTypes>::doUpdate()
     if (d_outVTKFilename.isSet())
         m_graph.exportToVTK(d_outVTKFilename.getFullPath());
    
-    if (d_outReportFilename.isSet())
-        m_graph.exportReportCSV(d_outReportFilename.getFullPath());
+
 }
 
 

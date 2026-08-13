@@ -43,19 +43,10 @@ public:
 
     // Outputs
     sofa::core::objectmodel::DataFileName d_outVTKFilename;     ///< File path to (re-)export the rooted tree as VTK
-    sofa::core::objectmodel::DataFileName d_outReportFilename;  ///< File path to (re-)export a per-node CSV report (id, coord, parentId, childrenIds, pathFromRoot)
     sofa::core::objectmodel::Data<int> d_outNodeCount;          ///< Number of skeleton nodes read
 
 
     const SkeletonGraph& graph() const { return m_graph; }
-
-
-    const std::vector<int>& parentsOf(int nodeId) const { return m_graph.parentsOf(nodeId); }
-    const std::vector<int>& childrenOf(int nodeId) const { return m_graph.childrenOf(nodeId); }
-    std::vector<int> pathFromRoot(int nodeId) const { return m_graph.pathFromRoot(nodeId); }
-    std::vector<int> subtree(int nodeId) const { return m_graph.subtree(nodeId); }
-
-
     // Overrides of the base class must stay public.
     void init() override;
     void doUpdate() override;
