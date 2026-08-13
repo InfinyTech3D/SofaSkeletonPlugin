@@ -1,0 +1,7 @@
+/data/LnRobsData/
+/data/Veins_data/
+/scenes/
+.gitignore
+*.vtk
+*.obj
+*.sxn

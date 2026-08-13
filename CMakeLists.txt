@@ -4,10 +4,8 @@ project(MeshSkeletonizationPlugin VERSION 0.1)
 # Dependencies
 find_package(Sofa.Config REQUIRED)
 sofa_find_package(Sofa.Core REQUIRED)
-
 sofa_find_package(CGAL REQUIRED)
 message(STATUS "CGAL VERSION = ${CGAL_VERSION}")
-
 
 set(PLUGIN_SKELETONIZATION_SRC_DIR src/MeshSkeletonizationPlugin)
 
@@ -16,11 +14,18 @@ set(HEADER_FILES
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/init.h
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/MeshSkeletonization.h
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/MeshSkeletonization.inl
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonNode.h
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonGraph.h
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonReader.h
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonReader.inl
 )
-
 set(SOURCE_FILES
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/init.cpp
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/MeshSkeletonization.cpp
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonGraph.cpp
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonReader.cpp
+
+
 )
 
 set(README_FILES README.md)
@@ -36,7 +41,6 @@ endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC Sofa.Core)
 target_link_libraries(${PROJECT_NAME} PUBLIC CGAL::CGAL)
 
-
 # Install rules for the library and the headers; CMake package configurations files
 sofa_create_package_with_targets(
     PACKAGE_NAME ${PROJECT_NAME}
@@ -46,5 +50,3 @@ sofa_create_package_with_targets(
     INCLUDE_INSTALL_DIR "MeshSkeletonizationPlugin"
     RELOCATABLE "plugins"
     )
-
-
