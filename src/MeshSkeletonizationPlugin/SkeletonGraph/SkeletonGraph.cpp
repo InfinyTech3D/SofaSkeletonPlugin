@@ -295,4 +295,118 @@ void SkeletonGraph::exportToVTK(const std::string& filename) const
         out << flag << "\n";
 }
 
+const SkeletonNode* SkeletonGraph::node(int nodeId) const
+{
+    if (nodeId < 0 || nodeId >= static_cast<int>(m_nodes.size()))
+        return nullptr;
+    return &m_nodes[nodeId];
+}
+
+
+bool SkeletonGraph::parentsOf(int nodeId, std::vector<int>& parents) const
+{
+    parents.clear();
+ 
+    const SkeletonNode* n = node(nodeId);
+    if (n == nullptr || n->parentIds().empty())
+        return false;
+ 
+    parents = n->parentIds();
+    return true;
+}
+ 
+bool SkeletonGraph::childrenOf(int nodeId, std::vector<int>& children) const
+{
+    children.clear();
+ 
+    const SkeletonNode* n = node(nodeId);
+    if (n == nullptr || n->childrenIds().empty())
+        return false;
+ 
+    children = n->childrenIds();
+    return true;
+}
+
+std::vector<int> SkeletonGraph::pathFromRoot(int nodeId) const
+{
+    std::vector<int> path;
+    if (!hasRoot() || node(nodeId) == nullptr) return path;
+
+    std::vector<int> parents;
+    std::set<int> seen;
+    int cur = nodeId;
+    while (true)
+    {
+        if (!seen.insert(cur).second) { path.clear(); return path; }
+        path.push_back(cur);
+        if (cur == m_rootId) break;
+        if (!parentsOf(cur, parents)) { path.clear(); return path; }
+        cur = parents.front();
+    }
+    std::reverse(path.begin(), path.end());
+    return path;
+}
+std::vector<int> SkeletonGraph::subtree(int nodeId) const
+{
+    std::vector<int> result;
+    if (node(nodeId) == nullptr) return result;
+ 
+    std::vector<int> children;
+    std::set<int> visited;
+    std::queue<int> q;
+    q.push(nodeId); visited.insert(nodeId);
+ 
+    while (!q.empty())
+    {
+        int cur = q.front(); q.pop();
+        result.push_back(cur);
+        if (childrenOf(cur, children))
+        {
+            for (int child : children)
+                if (visited.insert(child).second) q.push(child);
+        }
+    }
+    return result;
+}
+static std::string joinIds(const std::vector<int>& ids)
+{
+    std::string s;
+    for (size_t i = 0; i < ids.size(); ++i)
+    {
+        if (i > 0) s += ";";
+        s += std::to_string(ids[i]);
+    }
+    return s;
+}
+
+void SkeletonGraph::exportReportCSV(const std::string& filename) const
+{
+    if (!hasRoot())
+        return;
+
+    std::ofstream out(filename, std::ofstream::out | std::ofstream::trunc);
+    out << "id,x,y,z,parentId,childrenIds,pathFromRoot,loopParentIds\n";
+    out << std::fixed << std::setprecision(6);
+
+    for (const SkeletonNode& n : m_nodes)
+    {
+        const auto& p = n.position();
+        const auto& parents = n.parentIds();
+
+        int primaryParent = parents.empty() ? -1 : parents.front();
+
+        std::vector<int> loopParents;
+        if (parents.size() > 1)
+            loopParents.assign(parents.begin() + 1, parents.end());
+
+        std::vector<int> path = pathFromRoot(n.id());
+
+        out << n.id() << ","
+            << p[0] << "," << p[1] << "," << p[2] << ","
+            << primaryParent << ","
+            << "\"" << joinIds(n.childrenIds()) << "\","
+            << "\"" << joinIds(path) << "\","
+            << "\"" << joinIds(loopParents) << "\"\n";
+    }
+}
 } // namespace meshskeletonizationplugin

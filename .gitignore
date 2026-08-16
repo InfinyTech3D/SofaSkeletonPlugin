@@ -5,3 +5,6 @@
 *.vtk
 *.obj
 *.sxn
+*.scn
+*.csv
+

@@ -41,9 +41,14 @@ public:
 
     /// Ids of nodes connected by a loop/anastomosis (extra edge beyond the tree).
     const std::vector<std::pair<int, int>>& loopEdges() const { return m_loopEdges; }
-
+    //newest additions 
+    const SkeletonNode* node(int nodeId) const; 
+    bool parentsOf(int nodeId, std::vector<int>& parents) const;
+    bool childrenOf(int nodeId, std::vector<int>& children) const;     
+    std::vector<int> pathFromRoot(int nodeId) const; 
+    std::vector<int> subtree(int nodeId) const;
+    void exportReportCSV(const std::string& filename) const; //< export CSV report using @sa d_outReportFilename that will give out the ids, 3D coordinates, parent vertex and child vertex
     void exportToVTK(const std::string& filename) const;
-
     void clear();
 
 private:
