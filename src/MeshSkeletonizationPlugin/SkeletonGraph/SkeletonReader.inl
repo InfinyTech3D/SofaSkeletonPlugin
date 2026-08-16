@@ -1,14 +1,5 @@
 #pragma once
-<<<<<<< HEAD
 
-#include <MeshSkeletonizationPlugin/SkeletonGraph/SkeletonReader.h>
-
-using namespace sofa::core::objectmodel;
-
-namespace meshskeletonizationplugin
-{
-
-=======
 #include <MeshSkeletonizationPlugin/SkeletonGraph/SkeletonReader.h>
 using namespace sofa::core::objectmodel;
 
@@ -16,8 +7,6 @@ using namespace sofa::core::objectmodel;
 namespace meshskeletonizationplugin
 {
 
-
->>>>>>> 6ed8f1f42d6cc1dec475c6b71b62c28f161ebad3
 template <class DataTypes>
 SkeletonReader<DataTypes>::SkeletonReader()
     : d_inSkeletonFilename(initData(&d_inSkeletonFilename, "filename", "Skeleton polyline file to read (e.g. skeleton.txt)"))
@@ -31,10 +20,6 @@ SkeletonReader<DataTypes>::SkeletonReader()
     addInput(&d_inVertices);
     addInput(&d_inEntryPoint);
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 6ed8f1f42d6cc1dec475c6b71b62c28f161ebad3
     addOutput(&d_outVTKFilename);
     addOutput(&d_outReportFilename);
     addOutput(&d_outNodeCount);
@@ -47,10 +32,7 @@ void SkeletonReader<DataTypes>::init()
     if (d_inSkeletonFilename.getValue().empty())
     {
         msg_error() << "No input skeleton file set, please set the 'filename' data.";
-<<<<<<< HEAD
-=======
         d_componentState.setValue(ComponentState::Invalid);
->>>>>>> 6ed8f1f42d6cc1dec475c6b71b62c28f161ebad3
         return;
     }
     update();
@@ -60,24 +42,6 @@ void SkeletonReader<DataTypes>::init()
 template <class DataTypes>
 void SkeletonReader<DataTypes>::doUpdate()
 {
-<<<<<<< HEAD
-    if (d_inSkeletonFilename.getFullPath().empty())
-        return;
-
-    if (!m_graph.loadFromFile(d_inSkeletonFilename.getFullPath()))
-    {
-        
-        msg_error() << "Could not open skeleton file: " << d_inSkeletonFilename.getFullPath();
-        return;
-    }
-
-    msg_info() << "Skeleton loaded: " << m_graph.nodes().size() << " node(s).";
-    d_outNodeCount.setValue(static_cast<int>(m_graph.nodes().size()));
-
-    const Vec3& entry = d_inEntryPoint.getValue();
-    m_graph.buildTree({ double(entry[0]), double(entry[1]), double(entry[2]) });
-
-=======
     if (d_inSkeletonFilename.getFullPath().empty()){
         d_componentState.setValue(ComponentState::Invalid);
         return;
@@ -85,38 +49,28 @@ void SkeletonReader<DataTypes>::doUpdate()
 
     if (!m_graph.loadFromFile(d_inSkeletonFilename.getFullPath()))
     {
-       
         msg_error() << "Could not open skeleton file: " << d_inSkeletonFilename.getFullPath();
         d_componentState.setValue(ComponentState::Invalid);
         return;
     }
 
-
     msg_info() << "Skeleton loaded: " << m_graph.nodes().size() << " node(s).";
     d_outNodeCount.setValue(static_cast<int>(m_graph.nodes().size()));
-
 
     const Vec3& entry = d_inEntryPoint.getValue();
     m_graph.buildTree({ double(entry[0]), double(entry[1]), double(entry[2]) });
 
-
     if (!m_graph.hasRoot())
     {
-
-
         msg_error() << "No root could be established from: " << d_inSkeletonFilename.getFullPath();
         d_componentState.setValue(ComponentState::Invalid);
         return;
     }
->>>>>>> 6ed8f1f42d6cc1dec475c6b71b62c28f161ebad3
+
     if (m_graph.hasRoot())
         msg_info() << "Tree built, root id " << m_graph.rootId()
                     << ", " << m_graph.loopEdges().size() << " loop edge(s) detected.";
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 6ed8f1f42d6cc1dec475c6b71b62c28f161ebad3
     if (!d_inVertices.getValue().empty())
     {
         std::vector<std::array<double, 3>> meshVerts;
@@ -126,10 +80,6 @@ void SkeletonReader<DataTypes>::doUpdate()
         m_graph.computeMeshCorrespondence(meshVerts);
     }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 6ed8f1f42d6cc1dec475c6b71b62c28f161ebad3
     if (d_outVTKFilename.isSet())
         m_graph.exportToVTK(d_outVTKFilename.getFullPath());
     
@@ -138,23 +88,12 @@ void SkeletonReader<DataTypes>::doUpdate()
 }
 
 
-<<<<<<< HEAD
-=======
-
-
->>>>>>> 6ed8f1f42d6cc1dec475c6b71b62c28f161ebad3
 template <class DataTypes>
 void SkeletonReader<DataTypes>::draw(const sofa::core::visual::VisualParams* vparams)
 {
     using Color = sofa::type::RGBAColor;
     std::vector< type::Vec3 > dvec;
-<<<<<<< HEAD
-    
-    
-=======
-   
-   
->>>>>>> 6ed8f1f42d6cc1dec475c6b71b62c28f161ebad3
+
     for (const SkeletonNode& node : m_graph.nodes())
     {
         for (int childId : node.childrenIds())
@@ -163,26 +102,13 @@ void SkeletonReader<DataTypes>::draw(const sofa::core::visual::VisualParams* vpa
             const auto& p0 = node.position();
             const auto& p1 = child.position();
 
-<<<<<<< HEAD
             dvec.emplace_back(Coord(p0[0], p0[1], p0[2]));
             dvec.emplace_back(Coord(p1[0], p1[1], p1[2]));
 
-=======
-
-            dvec.emplace_back(Coord(p0[0], p0[1], p0[2]));
-            dvec.emplace_back(Coord(p1[0], p1[1], p1[2]));
-
-
->>>>>>> 6ed8f1f42d6cc1dec475c6b71b62c28f161ebad3
             vparams->drawTool()->drawLines(dvec, 2, Color::blue());
             dvec.clear();
         }
     }
 }
 
-<<<<<<< HEAD
 } // namespace meshskeletonizationplugin
-=======
-
-} // namespace meshskeletonizationplugin
->>>>>>> 6ed8f1f42d6cc1dec475c6b71b62c28f161ebad3

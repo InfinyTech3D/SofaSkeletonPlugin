@@ -41,7 +41,7 @@ public:
 
     /// Ids of nodes connected by a loop/anastomosis (extra edge beyond the tree).
     const std::vector<std::pair<int, int>>& loopEdges() const { return m_loopEdges; }
-    //newzest additions 
+    //newest additions 
     const SkeletonNode* node(int nodeId) const; 
     bool parentsOf(int nodeId, std::vector<int>& parents) const;
     bool childrenOf(int nodeId, std::vector<int>& children) const;     
