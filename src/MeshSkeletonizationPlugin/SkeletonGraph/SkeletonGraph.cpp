@@ -16,6 +16,7 @@ void SkeletonGraph::clear()
     m_nodes.clear();
     m_adjacency.clear();
     m_loopEdges.clear();
+    m_nodeSegment.clear();
     m_rootId = -1;
 }
 
@@ -89,6 +90,93 @@ bool SkeletonGraph::loadFromFile(const std::string& filename, double mergeTolera
     }
 
     return true;
+}
+
+bool SkeletonGraph::loadFromVTK(const std::string& filename)
+{
+    std::ifstream in(filename);
+    if (!in.is_open())
+        return false;
+
+    clear();
+
+    // Skip the 4-line ASCII VTK header: version, title, "ASCII", "DATASET POLYDATA".
+    std::string discard;
+    for (int i = 0; i < 4; ++i)
+        std::getline(in, discard);
+
+    std::string tag;
+    int currentBlockCount = 0; // set by POINT_DATA/CELL_DATA, used to size SCALARS reads
+
+    while (in >> tag)
+    {
+        if (tag == "POINTS")
+        {
+            int numPoints = 0;
+            std::string dataType;
+            in >> numPoints >> dataType;
+
+            m_nodes.clear();
+            m_nodes.reserve(numPoints);
+            for (int i = 0; i < numPoints; ++i)
+            {
+                std::array<double, 3> p{};
+                in >> p[0] >> p[1] >> p[2];
+                m_nodes.emplace_back(i, p[0], p[1], p[2]);
+            }
+        }
+        else if (tag == "LINES")
+        {
+            int numLines = 0, listSize = 0;
+            in >> numLines >> listSize;
+            for (int i = 0; i < numLines; ++i)
+            {
+                int count = 0, a = 0, b = 0;
+                in >> count >> a >> b;
+                if (count == 2 && a >= 0 && b >= 0 &&
+                    a < static_cast<int>(m_nodes.size()) && b < static_cast<int>(m_nodes.size()))
+                {
+                    // exportToVTK() writes "parentId childId" per line.
+                    m_nodes[a].addChildId(b);
+                    m_nodes[b].addParentId(a);
+
+                    // Also record the raw undirected connectivity - this is
+                    // what simulateResection()'s reachability BFS walks, so
+                    // without it a cut would never propagate to children.
+                    connect(a, b);
+                }
+            }
+        }
+        else if (tag == "POINT_DATA" || tag == "CELL_DATA")
+        {
+            in >> currentBlockCount;
+        }
+        else if (tag == "SCALARS")
+        {
+            std::string name, dataType, lookupTag, lookupName;
+            in >> name >> dataType >> lookupTag >> lookupName; // "<name> <type>\nLOOKUP_TABLE default"
+
+            if (name == "type" && currentBlockCount == static_cast<int>(m_nodes.size()))
+            {
+                for (int i = 0; i < currentBlockCount; ++i)
+                {
+                    int t = 0;
+                    in >> t;
+                    if (t == 1)
+                        m_rootId = i;
+                }
+            }
+            else
+            {
+                // Not needed to rebuild the tree (depth, is_loop, ...): consume and discard.
+                double dummy;
+                for (int i = 0; i < currentBlockCount; ++i)
+                    in >> dummy;
+            }
+        }
+    }
+
+    return hasRoot();
 }
 
 int SkeletonGraph::closestNodeId(const std::array<double, 3>& p) const
@@ -409,4 +497,204 @@ void SkeletonGraph::exportReportCSV(const std::string& filename) const
             << "\"" << joinIds(loopParents) << "\"\n";
     }
 }
+
+// --- Liver-segment mapping ---------------------------------------------------
+
+void SkeletonGraph::assignSegmentLabels(const std::vector<int>& rawNodeLabels)
+{
+    const int n = static_cast<int>(m_nodes.size());
+    m_nodeSegment.assign(n, -1);
+
+    if (!hasRoot() || rawNodeLabels.empty())
+        return;
+
+    const std::vector<int>& raw = rawNodeLabels;
+
+    // Walk the tree from the root, splitting it into maximal branches: a
+    // branch runs from the root (or right after a branch point) down to the
+    // next branch point or leaf. Every node in a branch gets that branch's
+    // majority raw label, so a few mislabeled nodes near a segment boundary
+    // don't fragment an otherwise-clear branch.
+    std::vector<int> stack;
+    stack.push_back(m_rootId);
+
+    while (!stack.empty())
+    {
+        int start = stack.back();
+        stack.pop_back();
+
+        std::vector<int> chain;
+        int cur = start;
+        while (true)
+        {
+            chain.push_back(cur);
+            const SkeletonNode* curNode = node(cur);
+            const auto& children = curNode->childrenIds();
+
+            if (children.size() == 1)
+            {
+                cur = children.front();
+                continue;
+            }
+
+            // Reached a leaf (0 children) or a branch point (>1 children):
+            // end this chain here, and start a fresh chain at each child.
+            for (int c : children)
+                stack.push_back(c);
+            break;
+        }
+
+        std::map<int, int> counts;
+        for (int id : chain)
+            if (id < static_cast<int>(raw.size()) && raw[id] != -1)
+                ++counts[raw[id]];
+
+        int majority = -1;
+        int best = 0;
+        for (const auto& kv : counts)
+        {
+            if (kv.second > best)
+            {
+                best = kv.second;
+                majority = kv.first;
+            }
+        }
+
+        for (int id : chain)
+            m_nodeSegment[id] = majority;
+    }
+}
+
+int SkeletonGraph::segmentOf(int nodeId) const
+{
+    if (nodeId < 0 || nodeId >= static_cast<int>(m_nodeSegment.size()))
+        return -1;
+    return m_nodeSegment[nodeId];
+}
+
+std::vector<int> SkeletonGraph::nodesInSegment(int segment) const
+{
+    std::vector<int> result;
+    for (const SkeletonNode& n : m_nodes)
+        if (segmentOf(n.id()) == segment)
+            result.push_back(n.id());
+    return result;
+}
+
+void SkeletonGraph::exportSegmentReportCSV(const std::string& filename) const
+{
+    if (!hasRoot())
+        return;
+
+    std::ofstream out(filename, std::ofstream::out | std::ofstream::trunc);
+    out << "id,x,y,z,segment\n";
+    out << std::fixed << std::setprecision(6);
+
+    for (const SkeletonNode& n : m_nodes)
+    {
+        const auto& p = n.position();
+        out << n.id() << ","
+            << p[0] << "," << p[1] << "," << p[2] << ","
+            << segmentOf(n.id()) << "\n";
+    }
+}
+
+void SkeletonGraph::exportSegmentReportCSV(const std::string& filename, const std::vector<std::string>& segmentNames) const
+{
+    if (!hasRoot())
+        return;
+
+    std::set<int> distinctSegments;
+    for (const SkeletonNode& n : m_nodes)
+    {
+        int seg = segmentOf(n.id());
+        if (seg != -1)
+            distinctSegments.insert(seg);
+    }
+
+    std::ofstream out(filename, std::ofstream::out | std::ofstream::trunc);
+    out << "# totalNodes=" << m_nodes.size() << ",distinctSegments=" << distinctSegments.size() << "\n";
+    out << "id,x,y,z,segment\n";
+    out << std::fixed << std::setprecision(6);
+
+    for (const SkeletonNode& n : m_nodes)
+    {
+        const auto& p = n.position();
+        int seg = segmentOf(n.id());
+
+        std::string name = "unknown";
+        if (seg >= 0 && seg < static_cast<int>(segmentNames.size()))
+            name = segmentNames[seg];
+
+        out << n.id() << ","
+            << p[0] << "," << p[1] << "," << p[2] << ","
+            << name << "\n";
+    }
+}
+
+std::vector<int> SkeletonGraph::simulateResection(const std::vector<int>& cutNodeIds) const
+{
+    std::vector<int> affected;
+    if (!hasRoot())
+        return affected;
+
+    std::set<int> cutSet(cutNodeIds.begin(), cutNodeIds.end());
+
+    // If the root itself is cut, nothing downstream can be perfused any more.
+    if (cutSet.count(m_rootId))
+    {
+        affected.reserve(m_nodes.size());
+        for (const SkeletonNode& n : m_nodes)
+            affected.push_back(n.id());
+        return affected;
+    }
+
+    // Reachability BFS over the raw connectivity graph (which already
+    // includes any collateral/loop edges): a cut node is simply never
+    // pushed/expanded, which is equivalent to deleting it and all of its
+    // edges from the graph. Anything still reachable from the root through
+    // some other path (e.g. an anastomosis bypassing the cut) stays
+    // perfused; everything else is affected.
+    std::vector<bool> reachable(m_nodes.size(), false);
+    std::queue<int> q;
+    reachable[m_rootId] = true;
+    q.push(m_rootId);
+
+    while (!q.empty())
+    {
+        int u = q.front();
+        q.pop();
+
+        auto it = m_adjacency.find(u);
+        if (it == m_adjacency.end())
+            continue;
+
+        for (int v : it->second)
+        {
+            if (cutSet.count(v) || reachable[v])
+                continue;
+            reachable[v] = true;
+            q.push(v);
+        }
+    }
+
+    for (const SkeletonNode& n : m_nodes)
+        if (cutSet.count(n.id()) || !reachable[n.id()])
+            affected.push_back(n.id());
+
+    return affected;
+}
+
+std::vector<int> SkeletonGraph::affectedSegments(const std::vector<int>& affectedNodeIds) const
+{
+    std::set<int> segments;
+    for (int id : affectedNodeIds)
+    {
+        int seg = segmentOf(id);
+        if (seg != -1)
+            segments.insert(seg);
+    }
+    return std::vector<int>(segments.begin(), segments.end());
+}
+
 } // namespace meshskeletonizationplugin

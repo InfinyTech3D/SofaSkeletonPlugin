@@ -38,8 +38,6 @@ public:
     bool isLeaf() const { return m_childrenIds.empty(); }
     bool isBranchPoint() const { return m_childrenIds.size() > 1; }
 
-    // --- Optional relation to the input (vessel) mesh this skeleton came from ---
-
     /// Index of the closest vertex in the input mesh, -1 if not computed.
     int meshVertexId() const { return m_meshVertexId; }
     void setMeshVertexId(int vId) { m_meshVertexId = vId; }

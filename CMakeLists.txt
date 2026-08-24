@@ -18,14 +18,18 @@ set(HEADER_FILES
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonGraph.h
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonReader.h
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonReader.inl
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SegmentMapping/SkeletonSegmentMapper.inl
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SegmentMapping/SkeletonSegmentMapper.h
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonResection/SkeletonResectionSimulator.h
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonResection/SkeletonResectionSimulator.inl
 )
 set(SOURCE_FILES
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/init.cpp
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/MeshSkeletonization.cpp
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonGraph.cpp
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonReader.cpp
-
-
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SegmentMapping/SkeletonSegmentMapper.cpp
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonResection/SkeletonResectionSimulator.cpp
 )
 
 set(README_FILES README.md)
