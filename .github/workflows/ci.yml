@@ -1,0 +1,274 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*' #release tags in format of e.g: 'v25.12.00' 
+
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+  workflow_dispatch:
+    inputs:
+      full_build:
+        description: "Run full build (including macOS)"
+        required: false
+        default: false
+        type: boolean
+
+env:
+  # Only used for the Windows release download. Linux/macOS use the system
+  # package, whose version may differ (see comment in the Linux step).
+  CGAL_VERSION: 5.6.2
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      os_list: ${{ steps.set.outputs.os_list }}
+    steps:
+      - id: set
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]] ||
+             [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" != refs/tags/v* ]] ||
+             [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.full_build }}" != "true" ]]; then
+            echo 'os_list=["ubuntu-22.04","windows-2022"]' >> $GITHUB_OUTPUT
+          else
+            echo 'os_list=["ubuntu-22.04","windows-2022","macos-14"]' >> $GITHUB_OUTPUT
+          fi
+
+      - name: Debug
+        run: echo '${{ steps.set.outputs.os_list }}'
+
+
+  build-and-test:
+    needs: prepare
+    name: Run on ${{ matrix.os }} with SOFA ${{ matrix.sofa_branch }}
+
+    if: >
+      github.event_name == 'push' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') ||
+      (
+        github.event_name == 'pull_request' &&
+        (
+          contains(github.event.pull_request.labels.*.name, 'pr: run ci') &&
+          (
+            github.event.action != 'labeled' ||
+            github.event.label.name == 'pr: run ci'
+          )
+        )
+      )
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        os: ${{ fromJSON(needs.prepare.outputs.os_list) }}
+        sofa_branch: [master]
+
+    steps:
+      #######################   Setup SOFA   #######################
+      - name: Setup SOFA and environment
+        id: sofa
+        uses: sofa-framework/sofa-setup-action@v5
+        with:
+          sofa_root: ${{ github.workspace }}/sofa
+          sofa_version: ${{ matrix.sofa_branch }}
+          sofa_scope: 'standard'
+
+      ###################   CGAL   ##############
+      # CGAL >= 5.0 is header-only: nothing to compile. On Windows it still
+      # needs the GMP/MPFR auxiliary DLLs at runtime.
+      - name: Install CGAL (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libcgal-dev
+          # NOTE: apt ships CGAL 5.4 on ubuntu-22.04, not $CGAL_VERSION.
+          CONF=$(find /usr -name 'CGALConfig.cmake' 2>/dev/null | head -n1)
+          [[ -n "$CONF" ]] || { echo "::error::CGALConfig.cmake not found"; exit 1; }
+          echo "CGAL_DIR=$(dirname "$CONF")" >> $GITHUB_ENV
+          echo "found: $CONF"
+
+      - name: Install CGAL (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install cgal
+          CONF=$(find "$(brew --prefix)" -name 'CGALConfig.cmake' 2>/dev/null | head -n1)
+          [[ -n "$CONF" ]] || { echo "::error::CGALConfig.cmake not found"; exit 1; }
+          echo "CGAL_DIR=$(dirname "$CONF")" >> $GITHUB_ENV
+          echo "found: $CONF"
+
+      - name: Cache CGAL (Windows)
+        if: runner.os == 'Windows'
+        id: cgal-cache
+        uses: actions/cache@v4
+        with:
+          path: deps/cgal
+          key: cgal-${{ env.CGAL_VERSION }}-windows
+
+      - name: Install CGAL (Windows)
+        if: runner.os == 'Windows' && steps.cgal-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deps/cgal
+          BASE="https://github.com/CGAL/cgal/releases/download/v${CGAL_VERSION}"
+          curl -fSL "$BASE/CGAL-${CGAL_VERSION}.zip" -o cgal.zip
+          curl -fSL "$BASE/CGAL-${CGAL_VERSION}-win64-auxiliary-libraries-gmp-mpfr.zip" -o cgal-aux.zip
+          python -c "import zipfile;zipfile.ZipFile('cgal.zip').extractall('deps/cgal')"
+          # auxiliary GMP/MPFR must land inside the CGAL tree
+          python -c "import zipfile;zipfile.ZipFile('cgal-aux.zip').extractall('deps/cgal/CGAL-${CGAL_VERSION}')"
+          ls -la "deps/cgal/CGAL-${CGAL_VERSION}"
+
+      - name: Export CGAL_DIR (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # cygpath -m gives C:/... : forward slashes, digestible by CMake
+          # inside the cmd.exe invocation below.
+          CG=$(cygpath -m "$PWD/deps/cgal/CGAL-${CGAL_VERSION}")
+          [[ -f "$PWD/deps/cgal/CGAL-${CGAL_VERSION}/CGALConfig.cmake" ]] \
+            || { echo "::error::CGALConfig.cmake not found in $CG"; exit 1; }
+          echo "CGAL_DIR=$CG" >> $GITHUB_ENV
+          echo "CGAL_DIR = $CG"
+          echo "BOOST_ROOT = ${BOOST_ROOT:-<unset>}"
+          echo "--- auxiliary DLLs ---"
+          find "$PWD/deps/cgal/CGAL-${CGAL_VERSION}/auxiliary" -name '*.dll' | head -n 20
+
+      #################   Checkout current repository   ##############
+      - name: Checkout current source code
+        uses: actions/checkout@v4
+        with:
+          path: ${{ env.WORKSPACE_SRC_PATH }}     
+
+      ################   Build and install current plugin   ##############
+      - name: Build and install
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cmd //c "${{ steps.sofa.outputs.vs_vsdevcmd }} \
+              && cd /d %GITHUB_WORKSPACE%/build \
+              && cmake -GNinja \
+                  -DCMAKE_PREFIX_PATH="$SOFA_ROOT/lib/cmake" \
+                  -DCGAL_DIR="$CGAL_DIR" \
+                  -DCMAKE_BUILD_TYPE=Release \
+                  -DCMAKE_INSTALL_PREFIX="$WORKSPACE_INSTALL_PATH" \
+                  -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%WORKSPACE_BUILD_PATH% \
+                  ../src \
+              && ninja install"
+          else
+            cd "$WORKSPACE_BUILD_PATH"
+            ccache -z
+            cmake \
+              -GNinja \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_PREFIX_PATH=$SOFA_ROOT/lib/cmake \
+              -DCGAL_DIR="$CGAL_DIR" \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_INSTALL_PREFIX="$WORKSPACE_INSTALL_PATH" \
+              -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$WORKSPACE_BUILD_PATH/lib" \
+              ../src
+            ninja install
+            ccache -s
+          fi
+
+      ############   Ship GMP/MPFR next to the plugin (Windows)   ##########
+      # Windows resolves dependent DLLs from the loading module's own
+      # directory. Without this the plugin builds fine but PluginManager
+      # fails at load with "The specified module could not be found".
+      - name: Copy CGAL auxiliary DLLs
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUX="$PWD/deps/cgal/CGAL-${CGAL_VERSION}/auxiliary"
+          mkdir -p "$WORKSPACE_INSTALL_PATH/bin"
+          find "$AUX" -name '*.dll' -exec cp {} "$WORKSPACE_INSTALL_PATH/bin/" \;
+          find "$AUX" -name '*.dll' -exec cp {} "$WORKSPACE_BUILD_PATH/" \;
+          echo "--- install/bin ---"
+          ls -la "$WORKSPACE_INSTALL_PATH/bin"
+
+      ###################   Artifact naming   ##############    
+      - name: Sanitize artifact name
+        id: sanitize
+        # This step removes special characters from the artifact name to ensure compatibility with upload-artifact
+        # Characters removed: " : < > | * ? \r \n \ /
+        # Spaces are replaced with underscores
+        # This sanitization prevents errors in artifact creation and retrieval
+        shell: pwsh
+        run: |
+          $originalName = "MeshSkeletonizationPlugin_${{ steps.sofa.outputs.run_branch }}_for-SOFA-${{ steps.sofa.outputs.sofa_version }}_${{ runner.os }}"
+          $artifact_name = $originalName -replace '[":;<>|*?\r\n\\/]', '' -replace ' ', '_'
+          echo "artifact_name=$artifact_name" >> $env:GITHUB_OUTPUT
+    
+      ###################   Create and upload artifact   ##############
+      - name: Create artifact
+        uses: actions/upload-artifact@v4.4.0
+        with:
+          name: ${{ steps.sanitize.outputs.artifact_name }}
+          path: ${{ env.WORKSPACE_INSTALL_PATH }}
+
+      - name: Install artifact
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: ${{ steps.sanitize.outputs.artifact_name }}
+          path: ${{ env.WORKSPACE_ARTIFACT_PATH }}
+
+      ###################   Tests   ##############
+      - name: Launch test 
+        id: tests
+        uses: sofa-framework/sofa-test-action@v1.0
+        with:
+          sofa_root: ${{ github.workspace }}/sofa
+          sofa_version: ${{ steps.sofa.outputs.sofa_version }}
+          src_dir: ${{ env.WORKSPACE_SRC_PATH }}
+          build_dir: ${{ env.WORKSPACE_BUILD_PATH }}
+          python_exe: ${{ steps.sofa.outputs.python_exe }}
+          output_dir: ${{ github.workspace }}/tests-results_dir
+          nb_parallel_threads: '4'
+
+
+  ###################   Create plugin artifacts   ##############
+  deploy:
+    name: Deploy artifacts
+    if: always() && startsWith(github.ref, 'refs/tags/v')
+    needs: [build-and-test]
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Get artifacts
+        uses: actions/download-artifact@v4.1.7
+        with:
+          path: artifacts
+
+      - name: Zip artifacts
+        shell: bash
+        run: |
+          cd $GITHUB_WORKSPACE/artifacts
+          for artifact in *; do
+            zip $artifact.zip -r $artifact/*
+          done
+
+      - name: Upload release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: release-${{ github.ref_name }}
+          fail_on_unmatched_files: true
+          target_commitish: ${{ github.sha }}
+          files: |
+            artifacts/MeshSkeletonizationPlugin_*_Linux.zip
+            artifacts/MeshSkeletonizationPlugin_*_Windows.zip
+            artifacts/MeshSkeletonizationPlugin_*_macOS.zip
