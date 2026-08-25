@@ -14,25 +14,28 @@
     -->
     <VisualStyle displayFlags="showVisualModels showBehaviorModels showWireframe"/>
 
+    <AddDataRepository path="../data/"/>
+    <AddDataRepository path="./data/"/>
+
     <DefaultAnimationLoop/>
     <DefaultVisualManagerLoop/>
 
     <Node name="Mesh">
-        <MeshOBJLoader name="loader" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_visual.obj" />
+        <MeshOBJLoader name="loader" filename="patient_08\visual/Patient_08_venoussystem_visual.obj" />
         <MeshSkeletonization template="Vec3d" name="skel"
             inputVertices="@loader.position"
             inputTriangles="@loader.triangles"
-            outputSkeleton="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_skeleton.txt" />
+            outputSkeleton="\patient_08\Patient_08_venoussystem_skeleton.txt" />
 
         <Node name="visual">
             <OglModel src="@../loader"/>
         </Node>
 
         <SkeletonReader name="reader"
-            filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_skeleton.txt"
+            filename="./patient_08\Patient_08_venoussystem_skeleton.txt"
             inputVertices="@loader.position"
-            outputVTK="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_skeleton.vtk"
-            outputReport="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\Results\Patient_08_venoussystem_report_skeleton_mapper.csv" />
+            outputVTK="./patient_08\Patient_08_venoussystem_skeleton.vtk"
+            outputReport="Results\Patient_08_venoussystem_report_skeleton_mapper.csv" />
     </Node>
 
     <Node name="LiverSegments">
@@ -40,14 +43,14 @@
           segmentNames must stay in the SAME order as these loaders, since
           that order is what maps index 0/1/2... to "II"/"III"/"IVa"... below.
         -->
-        <MeshOBJLoader name="segII"   filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_II____Lat__Sup_collision.obj"/>
-        <MeshOBJLoader name="segIII"  filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_III___Lat__Inf_collision.obj"/>
-        <MeshOBJLoader name="segIVa"  filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_IVa___Med__Sup_collision.obj"/>
-        <MeshOBJLoader name="segIVb"  filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_IVb___Med__Inf_collision.obj"/>
-        <MeshOBJLoader name="segV"    filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_V_____Ant__Inf__R_collision.obj"/>
-        <MeshOBJLoader name="segVI"   filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_VI____Post__Inf__R_collision.obj"/>
-        <MeshOBJLoader name="segVII"  filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_VII___Post__Sup__R_collision.obj"/>
-        <MeshOBJLoader name="segVIII" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_VIII___Ant__Sup__R_collision.obj"/>
+        <MeshOBJLoader name="segII"   filename="patient_08\collision/couinaud_Segment_II____Lat__Sup_collision.obj"/>
+        <MeshOBJLoader name="segIII"  filename="patient_08\collision/couinaud_Segment_III___Lat__Inf_collision.obj"/>
+        <MeshOBJLoader name="segIVa"  filename="patient_08\collision/couinaud_Segment_IVa___Med__Sup_collision.obj"/>
+        <MeshOBJLoader name="segIVb"  filename="patient_08\collision/couinaud_Segment_IVb___Med__Inf_collision.obj"/>
+        <MeshOBJLoader name="segV"    filename="patient_08\collision/couinaud_Segment_V_____Ant__Inf__R_collision.obj"/>
+        <MeshOBJLoader name="segVI"   filename="patient_08\collision/couinaud_Segment_VI____Post__Inf__R_collision.obj"/>
+        <MeshOBJLoader name="segVII"  filename="patient_08\collision/couinaud_Segment_VII___Post__Sup__R_collision.obj"/>
+        <MeshOBJLoader name="segVIII" filename="patient_08\collision/couinaud_Segment_VIII___Ant__Sup__R_collision.obj"/>
 
     
         <Node name="visII"><OglModel name="oglII" src="@../segII"/></Node>
@@ -63,15 +66,15 @@
             skeletonReader="@../Mesh/reader"
             segmentMeshes="@segII @segIII @segIVa @segIVb @segV @segVI @segVII @segVIII"
             segmentNames="II III IVa IVb V VI VII VIII"
-            outSegmentReportFilename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\Results\Patient_08_liver_segment_report_before.csv"/>
+            outSegmentReportFilename="\Results\Patient_08_liver_segment_report_before.csv"/>
 
 
         <SkeletonResectionSimulator name="resectionSim" template="Vec3d"
             segmentMapper="@segmentMapper"
-            cutNodeIds="135"
+            cutNodeIds="135 100 150 1"
             activationDelay="5.0"
             segmentVisualModels="@visII/oglII @visIII/oglIII @visIVa/oglIVa @visIVb/oglIVb @visV/oglV @visVI/oglVI @visVII/oglVII @visVIII/oglVIII"
-            outReportFilename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\Results\Patient_08_resection_report_after.csv"/>
+            outReportFilename="\Results\Patient_08_resection_report_after.csv"/>
     </Node>
 
 </Node>
