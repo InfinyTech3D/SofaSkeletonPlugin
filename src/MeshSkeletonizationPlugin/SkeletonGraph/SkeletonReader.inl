@@ -1,12 +1,11 @@
 #pragma once
 
 #include <MeshSkeletonizationPlugin/SkeletonGraph/SkeletonReader.h>
-using namespace sofa::core::objectmodel;
 
+using namespace sofa::core::objectmodel;
 
 namespace meshskeletonizationplugin
 {
-
 template <class DataTypes>
 SkeletonReader<DataTypes>::SkeletonReader()
     : d_inSkeletonFilename(initData(&d_inSkeletonFilename, "filename", "Skeleton polyline file to read (e.g. skeleton.txt)"))
@@ -19,7 +18,6 @@ SkeletonReader<DataTypes>::SkeletonReader()
     addInput(&d_inSkeletonFilename);
     addInput(&d_inVertices);
     addInput(&d_inEntryPoint);
-
     addOutput(&d_outVTKFilename);
     addOutput(&d_outReportFilename);
     addOutput(&d_outNodeCount);
@@ -42,7 +40,8 @@ void SkeletonReader<DataTypes>::init()
 template <class DataTypes>
 void SkeletonReader<DataTypes>::doUpdate()
 {
-    if (d_inSkeletonFilename.getFullPath().empty()){
+    if (d_inSkeletonFilename.getFullPath().empty())
+    {
         d_componentState.setValue(ComponentState::Invalid);
         return;
     }
@@ -62,14 +61,15 @@ void SkeletonReader<DataTypes>::doUpdate()
 
     if (!m_graph.hasRoot())
     {
+        // The file parsed but produced no usable rooted tree, so every
+        // downstream output would be empty.
         msg_error() << "No root could be established from: " << d_inSkeletonFilename.getFullPath();
         d_componentState.setValue(ComponentState::Invalid);
         return;
     }
 
-    if (m_graph.hasRoot())
-        msg_info() << "Tree built, root id " << m_graph.rootId()
-                    << ", " << m_graph.loopEdges().size() << " loop edge(s) detected.";
+    msg_info() << "Tree built, root id " << m_graph.rootId()
+               << ", " << m_graph.loopEdges().size() << " loop edge(s) detected.";
 
     if (!d_inVertices.getValue().empty())
     {
@@ -82,18 +82,22 @@ void SkeletonReader<DataTypes>::doUpdate()
 
     if (d_outVTKFilename.isSet())
         m_graph.exportToVTK(d_outVTKFilename.getFullPath());
-    
+
     if (d_outReportFilename.isSet())
         m_graph.exportReportCSV(d_outReportFilename.getFullPath());
+
+    d_componentState.setValue(ComponentState::Valid);
 }
 
 
 template <class DataTypes>
 void SkeletonReader<DataTypes>::draw(const sofa::core::visual::VisualParams* vparams)
 {
+    if (d_componentState.getValue() != ComponentState::Valid)
+        return;
+
     using Color = sofa::type::RGBAColor;
     std::vector< type::Vec3 > dvec;
-
     for (const SkeletonNode& node : m_graph.nodes())
     {
         for (int childId : node.childrenIds())
@@ -104,7 +108,6 @@ void SkeletonReader<DataTypes>::draw(const sofa::core::visual::VisualParams* vpa
 
             dvec.emplace_back(Coord(p0[0], p0[1], p0[2]));
             dvec.emplace_back(Coord(p1[0], p1[1], p1[2]));
-
             vparams->drawTool()->drawLines(dvec, 2, Color::blue());
             dvec.clear();
         }
