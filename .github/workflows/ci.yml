@@ -20,6 +20,8 @@ on:
         type: boolean
 
 env:
+  # Only used for the Windows release download. Linux/macOS use the system
+  # package, whose version may differ (see comment in the Linux step).
   CGAL_VERSION: 5.6.2
 
 jobs:
@@ -79,15 +81,31 @@ jobs:
           sofa_scope: 'standard'
 
       ###################   CGAL   ##############
+      # CGAL >= 5.0 is header-only: nothing to compile. On Windows it still
+      # needs the GMP/MPFR auxiliary DLLs at runtime.
       - name: Install CGAL (Linux)
         if: runner.os == 'Linux'
         shell: bash
-        run: sudo apt-get update && sudo apt-get install -y libcgal-dev
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libcgal-dev
+          # NOTE: apt ships CGAL 5.4 on ubuntu-22.04, not $CGAL_VERSION.
+          CONF=$(find /usr -name 'CGALConfig.cmake' 2>/dev/null | head -n1)
+          [[ -n "$CONF" ]] || { echo "::error::CGALConfig.cmake not found"; exit 1; }
+          echo "CGAL_DIR=$(dirname "$CONF")" >> $GITHUB_ENV
+          echo "found: $CONF"
 
       - name: Install CGAL (macOS)
         if: runner.os == 'macOS'
         shell: bash
-        run: brew install cgal
+        run: |
+          set -euo pipefail
+          brew install cgal
+          CONF=$(find "$(brew --prefix)" -name 'CGALConfig.cmake' 2>/dev/null | head -n1)
+          [[ -n "$CONF" ]] || { echo "::error::CGALConfig.cmake not found"; exit 1; }
+          echo "CGAL_DIR=$(dirname "$CONF")" >> $GITHUB_ENV
+          echo "found: $CONF"
 
       - name: Cache CGAL (Windows)
         if: runner.os == 'Windows'
@@ -110,13 +128,22 @@ jobs:
           # auxiliary GMP/MPFR must land inside the CGAL tree
           python -c "import zipfile;zipfile.ZipFile('cgal-aux.zip').extractall('deps/cgal/CGAL-${CGAL_VERSION}')"
           ls -la "deps/cgal/CGAL-${CGAL_VERSION}"
-          ls -la "deps/cgal/CGAL-${CGAL_VERSION}/auxiliary/gmp/lib"
 
       - name: Export CGAL_DIR (Windows)
         if: runner.os == 'Windows'
         shell: bash
-        run: echo "CGAL_DIR=$(cygpath -w "$PWD/deps/cgal/CGAL-${CGAL_VERSION}")" >> $GITHUB_ENV
-
+        run: |
+          set -euo pipefail
+          # cygpath -m gives C:/... : forward slashes, digestible by CMake
+          # inside the cmd.exe invocation below.
+          CG=$(cygpath -m "$PWD/deps/cgal/CGAL-${CGAL_VERSION}")
+          [[ -f "$PWD/deps/cgal/CGAL-${CGAL_VERSION}/CGALConfig.cmake" ]] \
+            || { echo "::error::CGALConfig.cmake not found in $CG"; exit 1; }
+          echo "CGAL_DIR=$CG" >> $GITHUB_ENV
+          echo "CGAL_DIR = $CG"
+          echo "BOOST_ROOT = ${BOOST_ROOT:-<unset>}"
+          echo "--- auxiliary DLLs ---"
+          find "$PWD/deps/cgal/CGAL-${CGAL_VERSION}/auxiliary" -name '*.dll' | head -n 20
 
       #################   Checkout current repository   ##############
       - name: Checkout current source code
@@ -133,6 +160,7 @@ jobs:
               && cd /d %GITHUB_WORKSPACE%/build \
               && cmake -GNinja \
                   -DCMAKE_PREFIX_PATH="$SOFA_ROOT/lib/cmake" \
+                  -DCGAL_DIR="$CGAL_DIR" \
                   -DCMAKE_BUILD_TYPE=Release \
                   -DCMAKE_INSTALL_PREFIX="$WORKSPACE_INSTALL_PATH" \
                   -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%WORKSPACE_BUILD_PATH% \
@@ -146,6 +174,7 @@ jobs:
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
               -DCMAKE_PREFIX_PATH=$SOFA_ROOT/lib/cmake \
+              -DCGAL_DIR="$CGAL_DIR" \
               -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_INSTALL_PREFIX="$WORKSPACE_INSTALL_PATH" \
               -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$WORKSPACE_BUILD_PATH/lib" \
@@ -153,6 +182,22 @@ jobs:
             ninja install
             ccache -s
           fi
+
+      ############   Ship GMP/MPFR next to the plugin (Windows)   ##########
+      # Windows resolves dependent DLLs from the loading module's own
+      # directory. Without this the plugin builds fine but PluginManager
+      # fails at load with "The specified module could not be found".
+      - name: Copy CGAL auxiliary DLLs
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUX="$PWD/deps/cgal/CGAL-${CGAL_VERSION}/auxiliary"
+          mkdir -p "$WORKSPACE_INSTALL_PATH/bin"
+          find "$AUX" -name '*.dll' -exec cp {} "$WORKSPACE_INSTALL_PATH/bin/" \;
+          find "$AUX" -name '*.dll' -exec cp {} "$WORKSPACE_BUILD_PATH/" \;
+          echo "--- install/bin ---"
+          ls -la "$WORKSPACE_INSTALL_PATH/bin"
 
       ###################   Artifact naming   ##############    
       - name: Sanitize artifact name
