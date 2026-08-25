@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<Node name="root" dt="0.01" gravity="0 0 0">
+    <RequiredPlugin pluginName="MeshSkeletonizationPlugin"/>
+    <RequiredPlugin pluginName="Sofa.GL.Component.Rendering3D"/>
+    <RequiredPlugin pluginName="Sofa.Component.SceneUtility"/>
+    <RequiredPlugin pluginName="Sofa.Component.IO.Mesh"/>
+    <RequiredPlugin pluginName="Sofa.Component.Visual"/>
+
+    <!--
+      ONE VisualStyle for the whole scene. showBehaviorModels is required for
+      SkeletonReader/SkeletonSegmentMapper/SkeletonResectionSimulator's draw()
+      to render anything - without it their colored skeleton points are silently
+      skipped even though the mesh itself (showVisualModels) still shows up.
+    -->
+    <VisualStyle displayFlags="showVisualModels showBehaviorModels showWireframe"/>
+
+    <DefaultAnimationLoop/>
+    <DefaultVisualManagerLoop/>
+
+    <Node name="Mesh">
+        <MeshOBJLoader name="loader" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_visual.obj" />
+        <MeshSkeletonization template="Vec3d" name="skel"
+            inputVertices="@loader.position"
+            inputTriangles="@loader.triangles"
+            outputSkeleton="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_skeleton.txt" />
+
+        <Node name="visual">
+            <OglModel src="@../loader"/>
+        </Node>
+
+        <SkeletonReader name="reader"
+            filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_skeleton.txt"
+            inputVertices="@loader.position"
+            outputVTK="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_skeleton.vtk"
+            outputReport="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\Results\Patient_08_venoussystem_report_skeleton_mapper.csv" />
+    </Node>
+
+    <Node name="LiverSegments">
+        <!--
+          segmentNames must stay in the SAME order as these loaders, since
+          that order is what maps index 0/1/2... to "II"/"III"/"IVa"... below.
+        -->
+        <MeshOBJLoader name="segII"   filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_II____Lat__Sup_collision.obj"/>
+        <MeshOBJLoader name="segIII"  filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_III___Lat__Inf_collision.obj"/>
+        <MeshOBJLoader name="segIVa"  filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_IVa___Med__Sup_collision.obj"/>
+        <MeshOBJLoader name="segIVb"  filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_IVb___Med__Inf_collision.obj"/>
+        <MeshOBJLoader name="segV"    filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_V_____Ant__Inf__R_collision.obj"/>
+        <MeshOBJLoader name="segVI"   filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_VI____Post__Inf__R_collision.obj"/>
+        <MeshOBJLoader name="segVII"  filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_VII___Post__Sup__R_collision.obj"/>
+        <MeshOBJLoader name="segVIII" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_VIII___Ant__Sup__R_collision.obj"/>
+
+    
+        <Node name="visII"><OglModel name="oglII" src="@../segII"/></Node>
+        <Node name="visIII"><OglModel name="oglIII" src="@../segIII"/></Node>
+        <Node name="visIVa"><OglModel name="oglIVa" src="@../segIVa"/></Node>
+        <Node name="visIVb"><OglModel name="oglIVb" src="@../segIVb"/></Node>
+        <Node name="visV"><OglModel name="oglV" src="@../segV"/></Node>
+        <Node name="visVI"><OglModel name="oglVI" src="@../segVI"/></Node>
+        <Node name="visVII"><OglModel name="oglVII" src="@../segVII"/></Node>
+        <Node name="visVIII"><OglModel name="oglVIII" src="@../segVIII"/></Node>
+
+        <SkeletonSegmentMapper name="segmentMapper" template="Vec3d"
+            skeletonReader="@../Mesh/reader"
+            segmentMeshes="@segII @segIII @segIVa @segIVb @segV @segVI @segVII @segVIII"
+            segmentNames="II III IVa IVb V VI VII VIII"
+            outSegmentReportFilename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\Results\Patient_08_liver_segment_report_before.csv"/>
+
+
+        <SkeletonResectionSimulator name="resectionSim" template="Vec3d"
+            segmentMapper="@segmentMapper"
+            cutNodeIds="135"
+            activationDelay="5.0"
+            segmentVisualModels="@visII/oglII @visIII/oglIII @visIVa/oglIVa @visIVb/oglIVb @visV/oglV @visVI/oglVI @visVII/oglVII @visVIII/oglVIII"
+            outReportFilename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\Results\Patient_08_resection_report_after.csv"/>
+    </Node>
+
+</Node>
