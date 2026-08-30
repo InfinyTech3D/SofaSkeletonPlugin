@@ -7,10 +7,9 @@
     <RequiredPlugin pluginName="Sofa.Component.Visual"/>
 
     <!--
-      ONE VisualStyle for the whole scene. showBehaviorModels is required for
-      SkeletonReader/SkeletonSegmentMapper/SkeletonResectionSimulator's draw()
-      to render anything - without it their colored skeleton points are silently
-      skipped even though the mesh itself (showVisualModels) still shows up.
+      showBehaviorModels is required for SkeletonReader / SkeletonSegmentMapper /
+      SkeletonResectionSimulator / TumorCutPointSelector draw() calls to render
+      anything - separate from showVisualModels, which only affects OglModels.
     -->
     <VisualStyle displayFlags="showVisualModels showBehaviorModels showWireframe"/>
 
@@ -18,11 +17,12 @@
     <DefaultVisualManagerLoop/>
 
     <Node name="Mesh">
-        <MeshOBJLoader name="loader" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_visual.obj" />
+        <MeshOBJLoader name="loader" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_visual.obj"/>
+
         <MeshSkeletonization template="Vec3d" name="skel"
             inputVertices="@loader.position"
             inputTriangles="@loader.triangles"
-            outputSkeleton="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_skeleton.txt" />
+            outputSkeleton="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_skeleton.txt"/>
 
         <Node name="visual">
             <OglModel src="@../loader"/>
@@ -32,14 +32,11 @@
             filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_skeleton.txt"
             inputVertices="@loader.position"
             outputVTK="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Patient_08_venoussystem_skeleton.vtk"
-            outputReport="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\Results\Patient_08_venoussystem_report_skeleton_mapper.csv" />
+            outputReport="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Results\skeleton_report.csv"/>
     </Node>
 
     <Node name="LiverSegments">
-        <!--
-          segmentNames must stay in the SAME order as these loaders, since
-          that order is what maps index 0/1/2... to "II"/"III"/"IVa"... below.
-        -->
+
         <MeshOBJLoader name="segII"   filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_II____Lat__Sup_collision.obj"/>
         <MeshOBJLoader name="segIII"  filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_III___Lat__Inf_collision.obj"/>
         <MeshOBJLoader name="segIVa"  filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_IVa___Med__Sup_collision.obj"/>
@@ -49,7 +46,6 @@
         <MeshOBJLoader name="segVII"  filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_VII___Post__Sup__R_collision.obj"/>
         <MeshOBJLoader name="segVIII" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\couinaud_Segment_VIII___Ant__Sup__R_collision.obj"/>
 
-    
         <Node name="visII"><OglModel name="oglII" src="@../segII"/></Node>
         <Node name="visIII"><OglModel name="oglIII" src="@../segIII"/></Node>
         <Node name="visIVa"><OglModel name="oglIVa" src="@../segIVa"/></Node>
@@ -63,15 +59,34 @@
             skeletonReader="@../Mesh/reader"
             segmentMeshes="@segII @segIII @segIVa @segIVb @segV @segVI @segVII @segVIII"
             segmentNames="II III IVa IVb V VI VII VIII"
-            outSegmentReportFilename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\Results\Patient_08_liver_segment_report_before.csv"/>
-
-
-        <SkeletonResectionSimulator name="resectionSim" template="Vec3d"
-            segmentMapper="@segmentMapper"
-            cutNodeIds="135"
-            activationDelay="5.0"
-            segmentVisualModels="@visII/oglII @visIII/oglIII @visIVa/oglIVa @visIVb/oglIVb @visV/oglV @visVI/oglVI @visVII/oglVII @visVIII/oglVIII"
-            outReportFilename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\Results\Patient_08_resection_report_after.csv"/>
+            outSegmentReportFilename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Results\liver_segment_report.csv"/>
     </Node>
+
+    <Node name="Tumors">
+
+        <MeshOBJLoader name="tumor1Collision" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\tumor\Patient_08_tumor_collision_01.obj"/>
+        <MeshOBJLoader name="tumor2Collision" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\tumor\Patient_08_tumor_collision_02.obj"/>
+        <MeshOBJLoader name="tumor3Collision" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\tumor\Patient_08_tumor_collision_03.obj"/>
+
+        <MeshOBJLoader name="tumor1Visual" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\tumor\Patient_08_tumor_visual_01.obj"/>
+        <MeshOBJLoader name="tumor2Visual" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\tumor\Patient_08_tumor_visual_02.obj"/>
+        <MeshOBJLoader name="tumor3Visual" filename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\tumor\Patient_08_tumor_visual_03.obj"/>
+
+        <Node name="visTumor1"><OglModel name="oglTumor1" src="@../tumor1Visual" color="0.8 0.1 0.6 0.85"/></Node>
+        <Node name="visTumor2"><OglModel name="oglTumor2" src="@../tumor2Visual" color="0.8 0.1 0.6 0.85"/></Node>
+        <Node name="visTumor3"><OglModel name="oglTumor3" src="@../tumor3Visual" color="0.8 0.1 0.6 0.85"/></Node>
+
+        <TumorCutPointSelector name="tumorSelector" template="Vec3d"
+            tumorMeshes="@tumor1Collision @tumor2Collision @tumor3Collision"
+            tumorNames="tumor-1 tumor-2 tumor-3"
+            segmentMapper="@../LiverSegments/segmentMapper"/>
+    </Node>
+
+    <SkeletonResectionSimulator name="resectionSim" template="Vec3d"
+        segmentMapper="@LiverSegments/segmentMapper"
+        cutNodeIds="@Tumors/tumorSelector.cutNodeIds"
+        activationDelay="5.0"
+        segmentVisualModels="@LiverSegments/visII/oglII @LiverSegments/visIII/oglIII @LiverSegments/visIVa/oglIVa @LiverSegments/visIVb/oglIVb @LiverSegments/visV/oglV @LiverSegments/visVI/oglVI @LiverSegments/visVII/oglVII @LiverSegments/visVIII/oglVIII"
+        outReportFilename="C:\Projects\Sofa\dev\sofa-plugins\MeshSkeletonization\data\patient_08\Results\resection_report.csv"/>
 
 </Node>

@@ -1,5 +1,4 @@
 #include "SkeletonGraph.h"
-
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -65,8 +64,7 @@ bool SkeletonGraph::loadFromFile(const std::string& filename, double mergeTolera
 
     while (std::getline(in, line))
     {
-        // Trim trailing whitespace/CR so blank-line detection works on
-        // files written or edited on Windows too.
+        // Trim trailing whitespace/CR so blank-line detection works on files written or edited on Windows too.
         while (!line.empty() && (line.back() == '\r' || line.back() == ' ' || line.back() == '\t'))
             line.pop_back();
 
@@ -197,6 +195,57 @@ int SkeletonGraph::closestNodeId(const std::array<double, 3>& p) const
         }
     }
     return best;
+}
+
+void SkeletonGraph::buildTreeAutoRoot()
+{
+    if (m_nodes.empty())
+        return;
+
+    std::vector<bool> visited(m_nodes.size(), false);
+    int bestRoot = -1;
+    std::size_t bestSize = 0;
+
+    for (const SkeletonNode& start : m_nodes)
+    {
+        if (visited[start.id()])
+            continue;
+
+        // BFS this component, just to measure it and grab a representative node.
+        std::vector<int> component;
+        std::queue<int> q;
+        visited[start.id()] = true;
+        q.push(start.id());
+
+        while (!q.empty())
+        {
+            int u = q.front();
+            q.pop();
+            component.push_back(u);
+
+            auto it = m_adjacency.find(u);
+            if (it == m_adjacency.end())
+                continue;
+
+            for (int v : it->second)
+            {
+                if (!visited[v])
+                {
+                    visited[v] = true;
+                    q.push(v);
+                }
+            }
+        }
+
+        if (component.size() > bestSize)
+        {
+            bestSize = component.size();
+            bestRoot = component.front();
+        }
+    }
+
+    if (bestRoot >= 0)
+        buildTree(bestRoot);
 }
 
 void SkeletonGraph::buildTree(const std::array<double, 3>& entryPoint)

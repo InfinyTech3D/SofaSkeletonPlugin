@@ -37,6 +37,16 @@ public:
     void buildTree(const std::array<double, 3>& entryPoint);
     void buildTree(int rootId);
 
+    /// Picks a root automatically, with no entry point needed: the node
+    /// belonging to the LARGEST connected component of the raw connectivity
+    /// graph. Real vessel skeletonization output is typically one dominant
+    /// tree plus a handful of small disconnected fragments (noise); this
+    /// guarantees the tree is rooted in the dominant structure instead of
+    /// risking a tiny isolated fragment, which is easy to hit by accident
+    /// with a naive nearest-point-to-some-coordinate pick (e.g. a caller
+    /// falling back to the origin when no real entry point is known).
+    void buildTreeAutoRoot();
+
     /// Best-effort correspondence between each skeleton node and the closest
     /// vertex of the input (vessel) mesh; fills meshVertexId/distanceToMesh.
     void computeMeshCorrespondence(const std::vector<std::array<double, 3>>& meshVertices);

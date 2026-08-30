@@ -66,7 +66,7 @@ void SkeletonResectionSimulator<DataTypes>::init()
     }
 
     setDirtyValue();
-    update(); // computes each time without waiting for something to read an output Data
+    update(); // compute eagerly, don't wait for something to read an output Data
 }
 
 template <class DataTypes>
@@ -74,7 +74,9 @@ void SkeletonResectionSimulator<DataTypes>::doUpdate()
 {
     if (!l_segmentMapper)
         return;
-    // Working on copy of the already segmented graph so the candidate is re-run per candidate without touching the mapper
+
+    // Work on our own copy of the mapper's (already segmented) graph so we
+    // can re-run this per candidate cut without touching the mapper.
     m_graph = l_segmentMapper->graph();
 
     const auto& cutIds = d_inCutNodeIds.getValue();
@@ -123,7 +125,9 @@ void SkeletonResectionSimulator<DataTypes>::doUpdate()
 template <class DataTypes>
 void SkeletonResectionSimulator<DataTypes>::updateSegmentColors()
 {
-    // colors of the segments before and after (green --> red)
+    // Re-checked every draw() call since there's no cheap event hook here
+    // for "time crossed the threshold" - this is a handful of colors, so
+    // recomputing it every frame is negligible.
     static const sofa::type::RGBAColor safeColor(0.20f, 0.80f, 0.20f, 1.0f);
     static const sofa::type::RGBAColor affectedColor(0.90f, 0.10f, 0.10f, 1.0f);
 
@@ -132,7 +136,8 @@ void SkeletonResectionSimulator<DataTypes>::updateSegmentColors()
     if (!l_segmentMapper)
         return;
 
-    // --- Diagnostics: run once, so we can see exactly what's wrong instead of silently doing nothing.
+    // --- Diagnostics: run once, so we can see exactly what's wrong instead
+    // of silently doing nothing.
     if (!m_loggedVisualModelLinkStatus)
     {
         m_loggedVisualModelLinkStatus = true;
@@ -179,7 +184,12 @@ void SkeletonResectionSimulator<DataTypes>::updateSegmentColors()
         if (!obj)
             continue;
 
-        // OglModel doesn't expose a plain "color" Data that is why this method was used
+        // OglModel doesn't expose a plain "color" Data - color lives inside
+        // its "material" Data (a Material struct: name + ambient/diffuse/
+        // specular/emissive/shininess). Rather than guess that struct's
+        // exact serialization format, round-trip it: read the CURRENT valid
+        // string, patch only the "Diffuse <flag> r g b a" tokens, write it
+        // back - preserves everything else regardless of exact format.
         sofa::core::objectmodel::BaseData* materialData = obj->findData("material");
         if (!materialData)
         {
@@ -212,6 +222,20 @@ void SkeletonResectionSimulator<DataTypes>::updateSegmentColors()
         }
 
         const auto& c = colors[i];
+
+        if (i < m_loggedMissingColorData.size() && !m_loggedMissingColorData[i])
+        {
+            // One-time sanity check: print exactly what tokens we're about
+            // to overwrite, so the "Diffuse <flag> r g b a" assumption can
+            // be visually confirmed against this SOFA build's real format
+            // instead of trusted blindly.
+            m_loggedMissingColorData[i] = true;
+            std::ostringstream window;
+            for (auto it = diffuseIt; it != tokens.end() && it != diffuseIt + 6; ++it)
+                window << "'" << *it << "' ";
+            msg_info() << "'" << obj->getName() << "' Diffuse token window before patch: " << window.str();
+        }
+
         *(diffuseIt + 1) = "1"; // force useDiffuse on, so our color is actually applied
         std::ostringstream rs, gs, bs, as;
         rs << c[0]; gs << c[1]; bs << c[2]; as << c[3];
@@ -235,10 +259,9 @@ void SkeletonResectionSimulator<DataTypes>::draw(const sofa::core::visual::Visua
     if (!vparams->displayFlags().getShowBehaviorModels())
         return;
 
-    static const sofa::type::RGBAColor perfusedColor(0.20f, 0.80f, 0.20f, 1.0f);
+    static const sofa::type::RGBAColor perfusedColor(1.0f, 1.0f, 1.0f, 1.0f);
     static const sofa::type::RGBAColor affectedColor(0.0f, 0.0f, 0.0f, 1.0f);
-    static const sofa::type::RGBAColor cutColor(1.0f, 1.0f, 1.0f, 1.0f);
-
+    static const sofa::type::RGBAColor cutColor(0.0f, 0.0f, 0.0f, 1.0f);
     const auto& affected = d_outAffectedNodeIds.getValue();
     std::set<int> affectedSet(affected.begin(), affected.end());
     std::set<int> cutSet(d_inCutNodeIds.getValue().begin(), d_inCutNodeIds.getValue().end());
