@@ -38,18 +38,17 @@ public:
         sofa::core::objectmodel::BaseLink::FLAG_STOREPATH | sofa::core::objectmodel::BaseLink::FLAG_STRONGLINK>
         l_skeletonReader;
 
-    /// One closed mesh per liver segment (e.g. the Couinaud collision meshes),
-    /// in the same order as d_inSegmentNames.
+    /// One closed mesh per liver segment (the Couinaud collision meshes), in the same order as d_inSegmentNames.
     sofa::core::objectmodel::MultiLink<
         SkeletonSegmentMapper<DataTypes>,
         sofa::core::loader::MeshLoader,
         sofa::core::objectmodel::BaseLink::FLAG_STOREPATH>
         l_segmentMeshes;
-    
-    //Component parameters
+
     // Inputs
     sofa::core::objectmodel::Data<sofa::type::vector<std::string>> d_inSegmentNames; ///< Human-readable name per entry of l_segmentMeshes, e.g. "II", "IVa", "VIII"
     sofa::core::objectmodel::DataFileName d_outSegmentReportFilename;                ///< Optional CSV report: id, x, y, z, segment name
+
     // Outputs
     sofa::core::objectmodel::Data<sofa::type::vector<int>> d_outNodeSegments;         ///< Segment index per skeleton node (into l_segmentMeshes/d_inSegmentNames, -1 = unknown), indexed like graph().nodes()
     sofa::core::objectmodel::Data<sofa::type::vector<std::string>> d_outNodeSegmentNames; ///< Same as d_outNodeSegments, resolved to names ("unknown" if -1)
@@ -66,9 +65,7 @@ public:
 private:
     SkeletonSegmentMapper();
     virtual ~SkeletonSegmentMapper() = default;
-
-    /// Local working copy of the linked reader's graph, augmented with
-    /// segment labels (SkeletonGraph is a plain value type, cheap to copy).
+    /// Local working copy of the linked reader's graph, augmented with segment labels 
     SkeletonGraph m_graph;
 };
 

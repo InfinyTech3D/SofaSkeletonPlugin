@@ -19,6 +19,22 @@ using namespace sofa::defaulttype;
 namespace meshskeletonizationplugin
 {
 
+/// Simulates a resection (vessel transection) at one or more skeleton node
+/// ids and reports what it would devascularize: which skeleton nodes can no
+/// longer reach the root (blood source) once the cut node(s) are removed
+/// from the vessel graph, and which liver segments those nodes belong to.
+///
+/// This is deliberately NOT a plain "everything below the cut" (subtree)
+/// computation: a node distal to a cut can still be perfused if a
+/// collateral/anastomosis connects it back to the root via a path that
+/// avoids every cut node. See SkeletonGraph::simulateResection() for the
+/// underlying reachability analysis.
+///
+/// Typical use: link to an existing SkeletonSegmentMapper (so both the tree
+/// and the segment labels are available), set d_inCutNodeIds to the node(s)
+/// a candidate resection would sever, and read back d_outAffectedNodeIds /
+/// d_outAffectedSegmentNames to see the consequence before committing to a
+/// surgical plan.
 template <class DataTypes>
 class SkeletonResectionSimulator : public sofa::core::DataEngine
 {
@@ -31,7 +47,8 @@ public:
     typedef type::Vec<3, Real> Vec3;
 
     /// The segmented skeleton to run resection scenarios against. If left
-    /// unset, the first SkeletonSegmentMapper<DataTypes> found in the context is used.
+    /// unset, the first SkeletonSegmentMapper<DataTypes> found in the
+    /// context is used.
     sofa::core::objectmodel::SingleLink<
         SkeletonResectionSimulator<DataTypes>,
         SkeletonSegmentMapper<DataTypes>,
