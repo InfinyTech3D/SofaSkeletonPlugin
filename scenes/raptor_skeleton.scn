@@ -38,13 +38,11 @@
 
     <MeshSkeletonization template="Vec3d" name="skeleton"
                     inputVertices="@meshLoader.position" inputTriangles="@meshLoader.triangles"
-                    outputSkeleton="../data/skeletons/output_raptor_skeleton.txt"
-                    />
-    
-    <Node name="visual">
-        <OglModel src="@../meshLoader"/>
-    </Node>
+                    outputSkeleton="../data/skeletons/output_raptor_skeleton.txt"/>
 
+    <SkeletonReader name="reader" filename="../data/skeletons/output_raptor_skeleton.txt"
+                    inputVertices="@meshLoader.position"
+                    outputVTK="../data/skeletons/output_raptor_skeleton.vtk"/>
 
     <Node name="Volume">
         <EulerImplicitSolver name="cg_odesolver" printLog="false"  rayleighStiffness="0.1" rayleighMass="0.01" />
@@ -69,11 +67,20 @@
 		<FixedProjectiveConstraint indices="@box3.indices" />	  
 
 		<PlaneForceField normal="0 1 0" d="-0.2" stiffness="100"  showPlane="1" showPlaneSize="20" />
+
+        <Node name="mapped_skeleton">
+            <MechanicalObject name="skeleton" template="Vec3d" position="@../../reader.positions" />
+            <EdgeSetTopologyContainer  name="Container" edges="@../../reader.edges" />
+			<EdgeSetTopologyModifier   name="Modifier" />
+			<EdgeSetGeometryAlgorithms name="GeomAlgo" template="Vec3d" drawEdges="1" />
+			<BarycentricMapping input="@../Volume" output="@skeleton" />
+        </Node>
+
 		
         <Node name="Surface">
-            <TriangleSetTopologyContainer  name="Container" fileTopology="" tags=" " />
+            <TriangleSetTopologyContainer  name="Container" />
 			<TriangleSetTopologyModifier   name="Modifier" />
-			<TriangleSetGeometryAlgorithms name="GeomAlgo"   template="Vec3d" />
+			<TriangleSetGeometryAlgorithms name="GeomAlgo" template="Vec3d" />
 			
             <Tetra2TriangleTopologicalMapping input="@../Container" output="@Container" />
 			<TriangleCollisionModel />
