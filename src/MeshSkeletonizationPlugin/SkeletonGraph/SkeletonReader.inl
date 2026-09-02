@@ -14,6 +14,8 @@ SkeletonReader<DataTypes>::SkeletonReader()
     , d_outVTKFilename(initData(&d_outVTKFilename, "outputVTK", "File path to export the rooted tree (.vtk)"))
     , d_outReportFilename(initData(&d_outReportFilename, "outputReport", "File path to export a per-node CSV report (id, x, y, z, parentId, childrenIds, pathFromRoot)"))
     , d_outNodeCount(initData(&d_outNodeCount, 0, "nodeCount", "Number of skeleton nodes read"))
+    , d_outPositions(initData(&d_outPositions, "positions", "Flat vertex positions, one per skeleton node, indexed like graph().nodes() - link to a MechanicalObject's 'position'"))
+    , d_outEdges(initData(&d_outEdges, "edges", "Edges (parent-child links, including any loop/anastomosis edges) - link to an EdgeSetTopologyContainer's 'edges'"))
 {
     addInput(&d_inSkeletonFilename);
     addInput(&d_inVertices);
@@ -21,6 +23,8 @@ SkeletonReader<DataTypes>::SkeletonReader()
     addOutput(&d_outVTKFilename);
     addOutput(&d_outReportFilename);
     addOutput(&d_outNodeCount);
+    addOutput(&d_outPositions);
+    addOutput(&d_outEdges);
 }
 
 
@@ -70,6 +74,34 @@ void SkeletonReader<DataTypes>::doUpdate()
 
     msg_info() << "Tree built, root id " << m_graph.rootId()
                << ", " << m_graph.loopEdges().size() << " loop edge(s) detected.";
+
+    // Flat vertices/edges for a MechanicalObject + EdgeSetTopologyContainer
+    // to consume directly (e.g. to barycentric-map the skeleton onto the
+    // liver so it deforms with it) - same convention as MeshOBJLoader's
+    // d_positions/d_edges. Node id == vector index throughout, so these
+    // stay index-aligned with graph().nodes() and every other per-node
+    // output (affectedNodeIds, nodeSegments, ...).
+    {
+        const auto& nodes = m_graph.nodes();
+
+        VecCoord positions;
+        positions.resize(nodes.size());
+        for (const SkeletonNode& n : nodes)
+        {
+            const auto& p = n.position();
+            positions[n.id()] = Coord(p[0], p[1], p[2]);
+        }
+        d_outPositions.setValue(positions);
+
+        SeqEdges edges;
+        for (const SkeletonNode& n : nodes)
+            for (int parentId : n.parentIds())
+                edges.push_back(Edge(parentId, n.id()));
+        d_outEdges.setValue(edges);
+
+        msg_info() << "Exported " << positions.size() << " position(s) and "
+                   << edges.size() << " edge(s) for topology/mechanical binding.";
+    }
 
     if (!d_inVertices.getValue().empty())
     {
