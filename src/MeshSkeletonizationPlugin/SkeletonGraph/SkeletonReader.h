@@ -44,8 +44,8 @@ public:
     // Outputs
     sofa::core::objectmodel::DataFileName d_outVTKFilename;     ///< File path to (re-)export the rooted tree as VTK
     sofa::core::objectmodel::Data<int> d_outNodeCount;          ///< Number of skeleton nodes read
-    sofa::core::objectmodel::Data<VecCoord> d_outPositions;     ///< Flat vertex positions, one per skeleton node, indexed like graph().nodes() - link to a MechanicalObject's "position"
-    sofa::core::objectmodel::Data<SeqEdges> d_outEdges;         ///< Edges (parent-child links, including any loop/anastomosis edges) - link to an EdgeSetTopologyContainer's "edges"
+    sofa::core::objectmodel::Data<VecCoord> d_outPositions;     ///< Flat vertex positions, one per skeleton node, indexed like graph().nodes()
+    sofa::core::objectmodel::Data<SeqEdges> d_outEdges;         ///< Vector of edges representing the Skeleton Graph using ids from @sa  d_outPositions
 
     /// Direct access to the loaded graph, e.g. for another component to query
     /// via getContext()->get<SkeletonReader<DataTypes>>()->graph().
