@@ -15,7 +15,7 @@ SkeletonReader<DataTypes>::SkeletonReader()
     , d_outReportFilename(initData(&d_outReportFilename, "outputReport", "File path to export a per-node CSV report (id, x, y, z, parentId, childrenIds, pathFromRoot)"))
     , d_outNodeCount(initData(&d_outNodeCount, 0, "nodeCount", "Number of skeleton nodes read"))
     , d_outPositions(initData(&d_outPositions, "positions", "Flat vertex positions, one per skeleton node, indexed like graph().nodes() - link to a MechanicalObject's 'position'"))
-    , d_outEdges(initData(&d_outEdges, "edges", "Edges (parent-child links, including any loop/anastomosis edges) - link to an EdgeSetTopologyContainer's 'edges'"))
+    , d_outEdges(initData(&d_outEdges, "edges", "Vector of edges representing the Skeleton Graph"))
 {
     addInput(&d_inSkeletonFilename);
     addInput(&d_inVertices);
