@@ -22,6 +22,10 @@ set(HEADER_FILES
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SegmentMapping/SkeletonSegmentMapper.h
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonResection/SkeletonResectionSimulator.h
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonResection/SkeletonResectionSimulator.inl
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/TumorMapping/TumorSet.h
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/TumorMapping/TumorCutPointSelector.h
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/TumorMapping/TumorCutPointSelector.inl
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/CGALMeshUtils.h
 )
 set(SOURCE_FILES
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/init.cpp
@@ -30,6 +34,8 @@ set(SOURCE_FILES
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonReader.cpp
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SegmentMapping/SkeletonSegmentMapper.cpp
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonResection/SkeletonResectionSimulator.cpp
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/TumorMapping/TumorSet.cpp
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/TumorMapping/TumorCutPointSelector.cpp
 )
 
 set(README_FILES README.md)

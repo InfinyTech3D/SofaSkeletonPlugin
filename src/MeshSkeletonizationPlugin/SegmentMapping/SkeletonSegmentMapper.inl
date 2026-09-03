@@ -3,86 +3,20 @@
 
 // Reuses the Kernel/Polyhedron/Point typedefs already declared (at global
 // scope) in MeshSkeletonization.h, so segment meshes are built the same way
-// MeshSkeletonization builds its own polyhedron.
+// MeshSkeletonization builds its own polyhedron - and the shared closed-mesh
+// query helper (also used by TumorCutPointSelector) so this doesn't keep its
+// own private copy of the same CGAL polyhedron/AABB-tree plumbing.
 #include <MeshSkeletonizationPlugin/MeshSkeletonization.h>
-
+#include <MeshSkeletonizationPlugin/CGALMeshUtils.h>
 #include <sofa/core/visual/VisualParams.h>
 #include <sofa/helper/accessor.h>
 #include <sofa/type/RGBAColor.h>
-
-#include <CGAL/AABB_tree.h>
-#include <CGAL/AABB_traits.h>
-#include <CGAL/AABB_face_graph_triangle_primitive.h>
-#include <CGAL/Side_of_triangle_mesh.h>
-#include <CGAL/Polyhedron_incremental_builder_3.h>
-
 #include <limits>
 #include <memory>
 #include <set>
 
 namespace meshskeletonizationplugin
 {
-
-namespace
-{
-    // Builds a CGAL Polyhedron_3 from a flat vertex/triangle mesh, mirroring
-    // MeshSkeletonization::geometryToPolyhedronOp but as a free function so it
-    // can be reused here without duplicating a private nested class.
-    template <class VecCoord, class SeqTriangles>
-    class MeshToPolyhedronOp : public CGAL::Modifier_base<HalfedgeDS>
-    {
-    public:
-        MeshToPolyhedronOp(const VecCoord& vertices, const SeqTriangles& triangles)
-            : m_vertices(vertices), m_triangles(triangles)
-        {
-        }
-
-        void operator()(HalfedgeDS& hds) override
-        {
-            CGAL::Polyhedron_incremental_builder_3<HalfedgeDS> builder(hds, true);
-            builder.begin_surface(m_vertices.size(), m_triangles.size());
-
-            for (const auto& v : m_vertices)
-                builder.add_vertex(Point(v[0], v[1], v[2]));
-
-            for (const auto& tri : m_triangles)
-            {
-                builder.begin_facet();
-                for (int j = 0; j < 3; ++j)
-                    builder.add_vertex_to_facet(tri[j]);
-                builder.end_facet();
-            }
-
-            if (builder.check_unconnected_vertices())
-                builder.remove_unconnected_vertices();
-
-            builder.end_surface();
-        }
-
-    private:
-        const VecCoord& m_vertices;
-        const SeqTriangles& m_triangles;
-    };
-
-    using AABBTraits = CGAL::AABB_traits<Kernel, CGAL::AABB_face_graph_triangle_primitive<Polyhedron>>;
-    using AABBTree = CGAL::AABB_tree<AABBTraits>;
-    using PointInsideTest = CGAL::Side_of_triangle_mesh<Polyhedron, Kernel>;
-
-    /// One segment mesh, ready for point-in-mesh + closest-point queries.
-    struct SegmentMeshQuery
-    {
-        Polyhedron polyhedron;
-        std::unique_ptr<AABBTree> tree;
-        std::unique_ptr<PointInsideTest> insideTest;
-
-        void build()
-        {
-            tree = std::make_unique<AABBTree>(CGAL::faces(polyhedron).first, CGAL::faces(polyhedron).second, polyhedron);
-            tree->accelerate_distance_queries();
-            insideTest = std::make_unique<PointInsideTest>(*tree);
-        }
-    };
-} // anonymous namespace
 
 template <class DataTypes>
 SkeletonSegmentMapper<DataTypes>::SkeletonSegmentMapper()
@@ -148,21 +82,14 @@ void SkeletonSegmentMapper<DataTypes>::doUpdate()
     m_graph = l_skeletonReader->graph();
 
     // Build one point-in-mesh query per linked segment mesh.
-    std::vector<SegmentMeshQuery> segmentQueries(l_segmentMeshes.size());
+    std::vector<cgalutils::ClosedMeshQuery> segmentQueries(l_segmentMeshes.size());
     for (std::size_t i = 0; i < l_segmentMeshes.size(); ++i)
     {
         sofa::core::loader::MeshLoader* loader = l_segmentMeshes.get(i);
         if (!loader)
             continue;
 
-        MeshToPolyhedronOp<
-            sofa::type::vector<sofa::type::Vec3>,
-            sofa::type::vector<sofa::core::topology::Topology::Triangle>>
-            op(loader->d_positions.getValue(), loader->d_triangles.getValue());
-
-        segmentQueries[i].polyhedron.delegate(op);
-        if (!segmentQueries[i].polyhedron.is_empty())
-            segmentQueries[i].build();
+        segmentQueries[i].buildFrom(loader->d_positions.getValue(), loader->d_triangles.getValue());
     }
 
     // Raw per-node label: which segment mesh contains this node, or (if none

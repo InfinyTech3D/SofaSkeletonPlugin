@@ -10,7 +10,7 @@ template <class DataTypes>
 SkeletonReader<DataTypes>::SkeletonReader()
     : d_inSkeletonFilename(initData(&d_inSkeletonFilename, "filename", "Skeleton polyline file to read (e.g. skeleton.txt)"))
     , d_inVertices(initData(&d_inVertices, "inputVertices", "Optional input mesh vertices, to link skeleton nodes to the mesh"))
-    , d_inEntryPoint(initData(&d_inEntryPoint, Vec3(0, 0, 0), "entryPoint", "Approx. entry point; closest node becomes the tree root"))
+    , d_inEntryPoint(initData(&d_inEntryPoint, Vec3(0, 0, 0), "entryPoint", "Approx. entry point; closest node becomes the tree root. If left unset, a root is instead picked automatically from the largest connected component of the skeleton."))
     , d_outVTKFilename(initData(&d_outVTKFilename, "outputVTK", "File path to export the rooted tree (.vtk)"))
     , d_outReportFilename(initData(&d_outReportFilename, "outputReport", "File path to export a per-node CSV report (id, x, y, z, parentId, childrenIds, pathFromRoot)"))
     , d_outNodeCount(initData(&d_outNodeCount, 0, "nodeCount", "Number of skeleton nodes read"))
@@ -60,8 +60,22 @@ void SkeletonReader<DataTypes>::doUpdate()
     msg_info() << "Skeleton loaded: " << m_graph.nodes().size() << " node(s).";
     d_outNodeCount.setValue(static_cast<int>(m_graph.nodes().size()));
 
-    const Vec3& entry = d_inEntryPoint.getValue();
-    m_graph.buildTree({ double(entry[0]), double(entry[1]), double(entry[2]) });
+    if (d_inEntryPoint.isSet())
+    {
+        const Vec3& entry = d_inEntryPoint.getValue();
+        m_graph.buildTree({ double(entry[0]), double(entry[1]), double(entry[2]) });
+        msg_info() << "Rooted using explicit entryPoint " << entry << ".";
+    }
+    else
+    {
+        // No explicit entry point given - don't silently root the tree at
+        // whatever's nearest the origin (which can land in a small,
+        // disconnected fragment far from the real vessel trunk, since real
+        // coordinates are almost never near (0,0,0)). Pick a root from the
+        // largest connected component instead.
+        m_graph.buildTreeAutoRoot();
+        msg_info() << "No entryPoint set; auto-rooted from the largest connected component.";
+    }
 
     if (!m_graph.hasRoot())
     {
