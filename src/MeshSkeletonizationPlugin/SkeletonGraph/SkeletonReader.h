@@ -32,7 +32,6 @@ public:
     // Topology typedefs, for exposing the skeleton as flat vertices/edges
     // (same convention as MeshOBJLoader's d_positions/d_edges) so it can be
     // connected directly to a MechanicalObject + EdgeSetTopologyContainer,
-    // e.g. for barycentric-mapping the skeleton to deform with the liver.
     using Edge = sofa::core::topology::BaseMeshTopology::Edge;
     using SeqEdges = sofa::core::topology::BaseMeshTopology::SeqEdges;
 
