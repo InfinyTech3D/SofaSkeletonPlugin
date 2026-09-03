@@ -6,6 +6,7 @@
 #include <sofa/defaulttype/VecTypes.h>
 #include <sofa/core/DataEngine.h>
 #include <sofa/core/objectmodel/DataFileName.h>
+#include <sofa/core/topology/BaseMeshTopology.h>
 #include <sofa/core/visual/VisualParams.h>
 
 #include <MeshSkeletonizationPlugin/SkeletonGraph/SkeletonGraph.h>
@@ -28,6 +29,12 @@ public:
     typedef typename Coord::value_type Real;
     typedef type::Vec<3, Real> Vec3;
 
+    // Topology typedefs, for exposing the skeleton as flat vertices/edges
+    // (same convention as MeshOBJLoader's d_positions/d_edges) so it can be
+    // connected directly to a MechanicalObject + EdgeSetTopologyContainer,
+    using Edge = sofa::core::topology::BaseMeshTopology::Edge;
+    using SeqEdges = sofa::core::topology::BaseMeshTopology::SeqEdges;
+
     // Inputs
     sofa::core::objectmodel::DataFileName d_inSkeletonFilename; ///< Path to the skeleton polyline file to read (e.g. skeleton.txt)
     sofa::core::objectmodel::Data<VecCoord> d_inVertices;       ///< Optional input mesh vertices, to link skeleton nodes to the mesh
@@ -37,6 +44,8 @@ public:
     // Outputs
     sofa::core::objectmodel::DataFileName d_outVTKFilename;     ///< File path to (re-)export the rooted tree as VTK
     sofa::core::objectmodel::Data<int> d_outNodeCount;          ///< Number of skeleton nodes read
+    sofa::core::objectmodel::Data<VecCoord> d_outPositions;     ///< Flat vertex positions, one per skeleton node, indexed like graph().nodes()
+    sofa::core::objectmodel::Data<SeqEdges> d_outEdges;         ///< Vector of edges representing the Skeleton Graph using ids from @sa  d_outPositions
 
     /// Direct access to the loaded graph, e.g. for another component to query
     /// via getContext()->get<SkeletonReader<DataTypes>>()->graph().
