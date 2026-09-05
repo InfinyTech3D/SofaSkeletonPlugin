@@ -16,6 +16,7 @@ SkeletonReader<DataTypes>::SkeletonReader()
     , d_outNodeCount(initData(&d_outNodeCount, 0, "nodeCount", "Number of skeleton nodes read"))
     , d_outPositions(initData(&d_outPositions, "positions", "Flat vertex positions, one per skeleton node, indexed like graph().nodes()'"))
     , d_outEdges(initData(&d_outEdges, "edges", "Vector of edges representing the Skeleton Graph"))
+	, d_drawGraph(initData(&d_drawGraph, false, "drawGraph", "Whether to draw the skeleton graph in the viewer"))
 {
     addInput(&d_inSkeletonFilename);
     addInput(&d_inVertices);
@@ -127,6 +128,9 @@ void SkeletonReader<DataTypes>::draw(const sofa::core::visual::VisualParams* vpa
 {
     if (d_componentState.getValue() != ComponentState::Valid)
         return;
+
+	if (!d_drawGraph.getValue())
+		return;
 
     using Color = sofa::type::RGBAColor;
     std::vector< type::Vec3 > dvec;

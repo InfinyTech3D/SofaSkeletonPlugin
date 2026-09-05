@@ -47,6 +47,8 @@ public:
     sofa::core::objectmodel::Data<VecCoord> d_outPositions;     ///< Flat vertex positions, one per skeleton node, indexed like graph().nodes()
     sofa::core::objectmodel::Data<SeqEdges> d_outEdges;         ///< Vector of edges representing the Skeleton Graph using ids from @sa  d_outPositions
 
+	Data<bool> d_drawGraph; ///< Whether to draw the skeleton graph in the viewer
+
     /// Direct access to the loaded graph, e.g. for another component to query
     /// via getContext()->get<SkeletonReader<DataTypes>>()->graph().
     const SkeletonGraph& graph() const { return m_graph; }
