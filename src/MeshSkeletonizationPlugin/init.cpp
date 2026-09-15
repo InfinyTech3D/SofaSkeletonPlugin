@@ -30,9 +30,6 @@ namespace meshskeletonizationplugin
 extern void registerMeshSkeletonization(sofa::core::ObjectFactory* factory);
 //extern void registerSkeletonizationLoader(sofa::core::ObjectFactory* factory);
 extern void registerSkeletonReader(sofa::core::ObjectFactory* factory);
-extern void registerSkeletonSegmentMapper(sofa::core::ObjectFactory* factory);
-extern void registerSkeletonResectionSimulator(sofa::core::ObjectFactory* factory);
-extern void registerTumorCutPointSelector(sofa::core::ObjectFactory* factory);
 
 //Here are just several convenient functions to help users know what the plugin contains
 extern "C" {
@@ -86,9 +83,6 @@ void registerObjects(sofa::core::ObjectFactory* factory)
     registerMeshSkeletonization(factory);
     // registerSkeletonizationLoader(factory);
     registerSkeletonReader(factory);
-    registerSkeletonSegmentMapper(factory);
-    registerSkeletonResectionSimulator(factory);
-    registerTumorCutPointSelector(factory);
 }
 
 }
