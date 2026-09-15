@@ -1,7 +1,7 @@
 #pragma once
 
-#include <MeshskeletonizationPlugin/config.h>
-#include <MeshskeletonizationPlugin/SkeletonGraph/SkeletonNode.h>
+#include <MeshSkeletonizationPlugin/config.h>
+#include <MeshSkeletonizationPlugin/SkeletonGraph/SkeletonNode.h>
 
 #include <array>
 #include <map>
