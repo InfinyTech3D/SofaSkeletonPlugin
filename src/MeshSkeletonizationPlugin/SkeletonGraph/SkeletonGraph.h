@@ -38,6 +38,10 @@ public:
     void buildTree(const std::array<double, 3>& entryPoint);
     void buildTree(int rootId);
 
+    /// Picks a root automatically, with no entry point needed: the node belonging to the LARGEST connected component of the raw connectivity graph.  
+    /// This guarantees the tree is rooted in the dominant structure instead of risking a tiny isolated fragment.
+    void buildTreeAutoRoot();
+
     /// Best-effort correspondence between each skeleton node and the closest
     /// vertex of the input (vessel) mesh; fills meshVertexId/distanceToMesh.
     void computeMeshCorrespondence(const std::vector<std::array<double, 3>>& meshVertices);

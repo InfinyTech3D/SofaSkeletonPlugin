@@ -18,6 +18,7 @@ set(HEADER_FILES
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonGraph.h
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonReader.h
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/SkeletonGraph/SkeletonReader.inl
+    ${PLUGIN_SKELETONIZATION_SRC_DIR}/CGALMeshUtils.h
 )
 set(SOURCE_FILES
     ${PLUGIN_SKELETONIZATION_SRC_DIR}/init.cpp
