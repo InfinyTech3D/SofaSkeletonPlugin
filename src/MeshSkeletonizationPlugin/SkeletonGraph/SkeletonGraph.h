@@ -1,6 +1,7 @@
 #pragma once
 
-#include "SkeletonNode.h"
+#include <MeshskeletonizationPlugin/config.h>
+#include <MeshskeletonizationPlugin/SkeletonGraph/SkeletonNode.h>
 
 #include <array>
 #include <map>
@@ -15,7 +16,7 @@ namespace meshskeletonizationplugin
 /// MeshSkeletonization/SkeletonizationLoader's Export_polylines: blocks of
 /// "x y z" lines separated by a blank line) and stores it as a graph of
 /// SkeletonNode, then turns it into a rooted parent/children tree.
-class SkeletonGraph
+class SOFA_MESHSKELETONIZATIONPLUGIN_API SkeletonGraph
 {
 public:
     /// Parses the file, merging points that are within `mergeTolerance` of an
