@@ -69,11 +69,7 @@ void SkeletonReader<DataTypes>::doUpdate()
     }
     else
     {
-        // No explicit entry point given - don't silently root the tree at
-        // whatever's nearest the origin (which can land in a small,
-        // disconnected fragment far from the real vessel trunk, since real
-        // coordinates are almost never near (0,0,0)). Pick a root from the
-        // largest connected component instead.
+        // No explicit entry point given . Pick a root from the largest connected component instead.
         m_graph.buildTreeAutoRoot();
         msg_info() << "No entryPoint set; auto-rooted from the largest connected component.";
     }
