@@ -9,7 +9,7 @@ namespace meshskeletonizationplugin
 /// A single node of a skeletonized structure (e.g. a vessel centerline point).
 /// Deliberately has no SOFA/CGAL dependency so it can be reused, tested,
 /// and serialized independently of the plugin's simulation types.
-class SkeletonNode
+class SOFA_MESHSKELETONIZATIONPLUGIN_API SkeletonNode
 {
 public:
     SkeletonNode() = default;

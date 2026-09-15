@@ -1,4 +1,5 @@
-#include "SkeletonGraph.h"
+#include <MeshSkeletonizationPlugin/SkeletonGraph/SkeletonGraph.h>
+
 #include <algorithm>
 #include <cmath>
 #include <fstream>
